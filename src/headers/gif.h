@@ -11,12 +11,16 @@ using namespace GIF_Headers;
 class GIF 
 {
     public:
+        GIF(FILE* fp);
+        
         FILE* file;
+        size_t filesize;
+        
         Header* header;
         LogicalScreenDescriptor* lsd;
         GlobalColorTableDescriptor* gctd;
         void* gct;
-        GraphicsControlExtension* gce;
+        // GraphicsControlExtension* gce;
         ImageDescriptor* imageDescriptor;
         // LocalColorTable* lct;
         // ImageData* imageData;
@@ -24,13 +28,19 @@ class GIF
         // CommentExtension* ce; 
         // Trailer* trailer;
 
-        GIF();
-        void ReadFileDataHeaders(const char* filepath);
-        bool ValidHeader();
+        void ReadFileDataHeaders();
+        int LoadHeader();
+        void DataLoop();
         void PrintHeaderInfo();
+        void PrintImageDescriptor(ImageDescriptor* descriptor);
+        void PrintImageData(ImageData* data);
 
     private:
-        // bool ValidHeader(uint8_t mag[6]);
+        bool ValidHeader();
+        void LoadExtension(ExtensionHeader* header);
+        void LoadImageData();
+        uint8_t* ReadImgDataSubBlock(ImageData* ImgData);
+        void CheckExtensions();
 };
 
 #endif // _GIF_H
