@@ -1,66 +1,92 @@
 #include "gif.h"
+#include "colortounicode.h"
 
-#include <iostream>
+#include <stdio.h>
 #include <math.h>
 
 GIF::GIF(FILE* fp)
 {
-    file = fp;
+    this->file = fp;
 
+    // Get the file size and restore the file pointer back to position 0
     fseek(file, 0, SEEK_END);
-    filesize = ftell(file);
+    this->filesize = ftell(file);
     rewind(file);
     printf("Total File Size: %.2ldkB\n", (filesize / 1024));
 
-    header = (Header*)malloc(sizeof(Header));
-    fread(header, 1, sizeof(Header), file);
+    // Load the GIF header into memory
+    this->header = (GifHeader*)malloc(sizeof(GifHeader));
+    fread(header, 1, sizeof(GifHeader), file);
+
+    // Check for a valid GIF Header
     if (!ValidHeader()) {
         fprintf(stderr, "Invalid GIF Format header...\n");
         exit(-1);
     } else {
-        printf("Valid GIF Header format");
+        printf("Valid GIF Header format\n");
     }
 }
 
 void GIF::DataLoop()
 {
-    fpos_t prevPos;
     uint8_t* nextByte = (uint8_t*)malloc(sizeof(uint8_t));
-    fgetpos(file, &prevPos);
-    fread(nextByte, 1, 1, file);
-    bool loop = true;
-    while (loop) {
-        CheckExtensions();
-        fgetpos(file, &prevPos);
-        fread(nextByte, 1, 1, file);
     
-        // I dont know why I do it like this but just use this
-        // to make sure I hit the Imaga data and then read it
-        // (also the loop just removes whatever isn't 0x2C so 
-        // if fo some reason my code acts up at around this spot
-        // this might be the culprit)
-        while (*nextByte != 0x2C) {
-            fgetpos(file, &prevPos);
-            fread(nextByte, 1, 1, file);
-        }
+    // Initialize the Pixel Map
 
-        fsetpos(file, &prevPos);
+    // Really stupid way to do this but eventually I will work out the issues
+    std::vector<char> pixelMap;
+    pixelMap.resize(lsd->Width * lsd->Height);
+
+    // Dont look at this
+    // std::vector<std::vector<char>> frameMap;
+
+    // Because the pixel map is not initalized as a multi-dimensional array
+    // The way that values of rows and columns will be accessed is like this
+    // (char) pixel = PixelMap.at(Row * Width) + Col
+
+    printf("Image Width/Height: %d/%d\n", lsd->Width, lsd->Height);
+    for (int row = 0; row < lsd->Height; row++) {
+        for (int col = 0; col < lsd->Width; col++) {
+            // By default just set the value at the char to ' '
+            pixelMap.at((row * lsd->Width) + col) = ' ';
+            // printf("%c", PixelMap.at((row * lsd->Width) + col));
+        }
+        // printf("\n");
+    }
+
+    // This while true should build up enough information for the frames of the gif
+    while (true) {
+        Image img = Image(file, colorTable);
+
+        // Load Image Extenstion information before proceeding with parsing image data
+        img.CheckExtensions();
+        
+        // Load the decompressed image data and draw the frame
         printf("\nLoading Image Data...\n");
-        LoadImageData();
- 
+        std::string rasterData = img.LoadImageData();
+
+        // printf("Displaying Raster Data...\n");
+        // for (char c : rasterData) {
+        //     printf("%c", c);
+        // }
+        // printf("\n");
+
+        img.UpdateFrame(&rasterData, &pixelMap);
+        
         fread(nextByte, 1, 1, file);
-        if ((size_t)ftell(file) == filesize) {
+        fseek(file, -1, SEEK_CUR);
+        
+        // Check if the file ended correctly (should end on 0x3B)
+        if ((size_t)ftell(file) == filesize - 1) {
             if (*nextByte == TRAILER) {
                 printf("File Ended Naturally\n");
-                loop = false;
+                break;
             } else {
                 printf("File ended unaturally with byte [%X]\n", *nextByte);
-                loop = false;
+                break;
             }
         }
     }
-
-    printf("Finished Reading GIF\n");
 }
 
 void GIF::ReadFileDataHeaders()
@@ -71,6 +97,10 @@ void GIF::ReadFileDataHeaders()
     // Check to see if the GCT flag is set
     if (lsd->Packed >> LSDMask::GlobalColorTable) {
         printf("Global Color Table Present\nLoading GCT Descriptor...\n");
+
+        colorTable = (std::vector<std::vector<uint8_t>>*)malloc(sizeof(std::vector<std::vector<uint8_t>>));
+
+        // Load the Global Color Table Descriptor Data
         gctd = (GlobalColorTableDescriptor*)malloc(sizeof(GlobalColorTableDescriptor));
         gctd->SizeInLSD = (lsd->Packed >> LSDMask::LSDSize) & 0x07;
         gctd->NumberOfColors = pow(2, gctd->SizeInLSD + 1);
@@ -84,15 +114,15 @@ void GIF::ReadFileDataHeaders()
                 fread(&color[i], 1, 1, file);
             }
 
-            colorTable.push_back(color);
+            colorTable->push_back(color);
             color.clear();
             color.resize(3);
         }
         printf("Successfully Loaded GCT Descriptor\n");
 
+        // Just for a sanity check print out each color in the GCT
         printf("\n------- Global Color Table -------\n");
-        // Just for a sanity check
-        for (std::vector<uint8_t> c : colorTable) {
+        for (std::vector<uint8_t> c : *colorTable) {
             printf("Red: %X\n", c[0]);
             printf("Green: %X\n", c[1]);
             printf("Blue: %X\n\n", c[2]);
@@ -113,137 +143,6 @@ bool GIF::ValidHeader()
     }
 
     return true;
-}
-
-void GIF::LoadExtension(ExtensionHeader* header)
-{
-    using namespace GIF_Headers;
-    
-    switch (header->Label) {
-    case ExtensionTypes::PlainText:
-    {
-        printf("Loding Plain Text Extension\n");
-        PlainTextExtension* pe = (PlainTextExtension*)malloc(sizeof(PlainTextExtension));
-        pe->header = *header;
-        fread(&pe->BlockSize, 1, 1, file);
-        printf("Block Size: %d\n", pe->BlockSize);
-        uint8_t* dataBuf = (uint8_t*)malloc(sizeof(uint8_t) * pe->BlockSize);
-        fread(dataBuf, 1, pe->BlockSize, file);
-
-    } break;
-    case ExtensionTypes::GraphicsControl:
-    {
-        printf("Loading Graphics Control Extension\n");
-        GraphicsControlExtension* gce = (GraphicsControlExtension*)malloc(sizeof(GraphicsControlExtension));
-        gce->header = *header;
-        fread(gce, 1, sizeof(GraphicsControlExtension) - sizeof(ExtensionHeader) + 1, file);
-        free(gce); // Discarded Graphic Control Extension
-        printf("Loaded Graphics Control Extension\n");
-    } break;
-    case ExtensionTypes::Comment:
-    {
-        printf("Loding Comment Extension\n");
-        CommentExtension* ce = (CommentExtension*)malloc(sizeof(CommentExtension));
-        ce->header = *header;
-
-        uint8_t* nextByte = (uint8_t*)malloc(sizeof(uint8_t));
-
-        while (*nextByte != 0x00) {
-            fread(nextByte, 1, 1, file);
-            // Notice how I do nothing with the data other
-            // than to read it so I can advance the file pointer??
-
-            // TODO: Make the comment extension data sub blocks actuatually
-            // store the value in the file (if I feel like it though)
-        }
-    } break;
-    case ExtensionTypes::Application:
-    {
-        printf("Loding Application Extension\n");
-        /* I AM DISCARDING APPLICATION EXTENSIONS FOR THE TIME BEING CAUSE I DON'T NEED THEM */
-
-        ApplicationExtension* ae = (ApplicationExtension*)malloc(sizeof(ApplicationExtension));
-        ae->header = *header;
-        fread(&ae->BlockLength, 1, 1, file);
-        printf("Application Block Length: %d\n", ae->BlockLength);
-
-        ae->Identifier = (uint8_t*)malloc(sizeof(uint8_t) * ae->BlockLength);
-        fread(&ae->Identifier, 1, ae->BlockLength, file);
-        // ae->Identifier = identBuf;
-
-        uint8_t authLength;
-        fread(&authLength, 1, 1, file);
-
-        ae->AuthenticationCode = (uint8_t*)malloc(sizeof(uint8_t) * authLength);
-        fread(ae->AuthenticationCode, 1, authLength, file);
-        // ae->AuthenticationCode = authBuf;
-
-        uint8_t* next = (uint8_t*)malloc(sizeof(uint8_t));
-        fread(next, 1, 1, file);
-        if (*next == 0x00) {
-            printf("Application block end\n");
-        }
-    } break;
-    default:
-    {
-        fprintf(stderr, "Recived Invalid extension type [%X]\n", header->Label);
-    } break;
-    }
-}
-
-void GIF::LoadImageData()
-{
-    using namespace ImageData;
-
-    // Load the Image Descriptor
-    Image img = Image();
-    img.descriptor = (ImageDescriptor*)malloc(sizeof(ImageDescriptor));
-    fread(img.descriptor, 1, sizeof(ImageDescriptor), file);
-
-    // Load the Local Color Table if it is set
-    if ((img.descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1) {
-        printf("Loading Local color Table\n");
-        // The current GIF I am trying to target does not have a need for a LCT so I am just
-        // going to skip loading one for now (sucks to suck)
-    } else {
-        printf("No Local Color Table Flag Set\n");
-    }
-
-    //Load Image Data (Time to implement LZW Compression) (Update: THIS SUCKS WHY DID I WANT TO DO THIS)
-    img.header = (ImageDataHeader*)malloc(sizeof(ImageDataHeader));
-    fread(img.header, 1, 2, file); // Only read 2 bytes of file steam for LZW min and Follow Size 
-
-    img.PrintData();
-    img.ReadDataSubBlocks(file);
-    imageData.push_back(img);
-
-
-    printf("Block count: %d\n", (int)img.subBlocks.size());
-    for (std::vector<uint8_t> block : img.subBlocks) {
-        LZW::Decompress(&img, colorTable, block);
-    }
-
-    printf("Current File Pos: 0x%lX\n", ftell(file));
-}
-
-void GIF::CheckExtensions()
-{
-    printf("\nChecking for extensions...\n");
-    fpos_t prevPos;
-    ExtensionHeader* extensionCheck = (ExtensionHeader*)malloc(sizeof(ExtensionHeader));
-    bool loadingExtensions = true;
-    while (loadingExtensions) {
-        fgetpos(file, &prevPos);
-        fread(extensionCheck, 1, sizeof(ExtensionHeader), file);
-    
-        if (extensionCheck->Introducer == EXTENSION_INTRODUCER) {
-            LoadExtension(extensionCheck);
-        } else {
-            fsetpos(file, &prevPos);
-            free(extensionCheck);
-            loadingExtensions = false;
-        }
-    }
 }
 
 void GIF::PrintHeaderInfo()
