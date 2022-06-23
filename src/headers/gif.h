@@ -4,7 +4,10 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <vector>
 #include "gifheaders.h"
+#include "imagedata.h"
+#include "lzw.h"
 // https://docs.fileformat.com/image/gif/
 
 using namespace GIF_Headers;
@@ -19,27 +22,18 @@ class GIF
         Header* header;
         LogicalScreenDescriptor* lsd;
         GlobalColorTableDescriptor* gctd;
-        void* gct;
-        // GraphicsControlExtension* gce;
-        ImageDescriptor* imageDescriptor;
-        // LocalColorTable* lct;
-        // ImageData* imageData;
-        // PlainTextExtension* pte;
-        // CommentExtension* ce; 
-        // Trailer* trailer;
+        std::vector<ImageData::Image> imageData;
+        std::vector<std::vector<uint8_t>> colorTable; // If the flag is present then the gct will be filled
 
         void ReadFileDataHeaders();
         int LoadHeader();
         void DataLoop();
         void PrintHeaderInfo();
-        void PrintImageDescriptor(ImageDescriptor* descriptor);
-        void PrintImageData(ImageData* data);
 
     private:
         bool ValidHeader();
         void LoadExtension(ExtensionHeader* header);
         void LoadImageData();
-        uint8_t* ReadImgDataSubBlock(ImageData* ImgData);
         void CheckExtensions();
 };
 

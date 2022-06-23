@@ -3,6 +3,7 @@
 #define _GIF_HEADERS_H
 
 #include <stdint.h>
+#include <vector>
 
 namespace GIF_Headers
 {
@@ -54,50 +55,6 @@ namespace GIF_Headers
         uint16_t    ByteLegth;
     } __attribute__((packed));
 
-    struct ColorTable {
-        uint8_t Red;
-        uint8_t Green;
-        uint8_t Blue;
-    } __attribute__((packed));    
-    
-    struct DataSubBlock {
-        uint8_t     Size;
-        uint8_t*    Values;        
-    };
-
-    enum ImgDescMask {
-        LocalColorTable = 7,
-        Interlace       = 6,
-        IMGSort         = 5, // Sort flag
-        IMGSize         = 0, // Size of Local Color Table
-    };
-
-    struct ImageDescriptor {
-        uint8_t     Seperator;
-        uint16_t    Left;
-        uint16_t    Right;
-        uint16_t    Width;
-        uint16_t    Height;
-
-        /* Packed Bit Description
-            1 : Local Color Table Flag
-            2 : Interlace Flag
-            3 : Sort Flag
-            4-5 : Reserved
-            6-8 : Local Color Table Size
-        */
-        uint8_t     Packed;
-    } __attribute__((packed));
-
-    // struct LocalColorTable {
-
-    // } __attribute__((packed));
-
-    struct ImageData {
-        uint8_t LZWMinimum;
-        uint8_t FollowSize;
-    } __attribute__((packed));
-    
     struct ExtensionHeader {
         uint8_t Introducer;
         uint8_t Label;
@@ -136,16 +93,13 @@ namespace GIF_Headers
         uint8_t         BlockLength;
         uint8_t*        Identifier;
         uint8_t*        AuthenticationCode;
-        // DataSubBlock    dataSubBlock;
         uint8_t         Terminator;
     };
 
     struct CommentExtension {
         ExtensionHeader header;
-        uint8_t*           data;
+        uint8_t*        data;
     } __attribute__((packed));
-
-
 }
 
 #endif // _GIF_HEADERS_H

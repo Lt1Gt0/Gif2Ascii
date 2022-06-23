@@ -1,7 +1,7 @@
 #include "gif.h"
 
 #include <iostream>
-#include <tgmath.h>
+#include <math.h>
 
 GIF::GIF(FILE* fp)
 {
@@ -11,14 +11,15 @@ GIF::GIF(FILE* fp)
     filesize = ftell(file);
     rewind(file);
     printf("Total File Size: %.2ldkB\n", (filesize / 1024));
-}
 
-int GIF::LoadHeader()
-{
     header = (Header*)malloc(sizeof(Header));
     fread(header, 1, sizeof(Header), file);
-
-    return ValidHeader();
+    if (!ValidHeader()) {
+        fprintf(stderr, "Invalid GIF Format header...\n");
+        exit(-1);
+    } else {
+        printf("Valid GIF Header format");
+    }
 }
 
 void GIF::DataLoop()
@@ -27,10 +28,8 @@ void GIF::DataLoop()
     uint8_t* nextByte = (uint8_t*)malloc(sizeof(uint8_t));
     fgetpos(file, &prevPos);
     fread(nextByte, 1, 1, file);
-    // fsetpos(file, &prevPos);
-    while (*nextByte != TRAILER) {
-        // printf("Next Byte in file before rewinding: %X\n", *nextByte);
-        // fsetpos(file, &prevPos);
+    bool loop = true;
+    while (loop) {
         CheckExtensions();
         fgetpos(file, &prevPos);
         fread(nextByte, 1, 1, file);
@@ -48,9 +47,16 @@ void GIF::DataLoop()
         fsetpos(file, &prevPos);
         printf("\nLoading Image Data...\n");
         LoadImageData();
-        
-        if (ftell(file) != EOF) {
-            fread(nextByte, 1, 1, file);
+ 
+        fread(nextByte, 1, 1, file);
+        if ((size_t)ftell(file) == filesize) {
+            if (*nextByte == TRAILER) {
+                printf("File Ended Naturally\n");
+                loop = false;
+            } else {
+                printf("File ended unaturally with byte [%X]\n", *nextByte);
+                loop = false;
+            }
         }
     }
 
@@ -69,9 +75,29 @@ void GIF::ReadFileDataHeaders()
         gctd->SizeInLSD = (lsd->Packed >> LSDMask::LSDSize) & 0x07;
         gctd->NumberOfColors = pow(2, gctd->SizeInLSD + 1);
         gctd->ByteLegth = 3 * gctd->NumberOfColors;
-        gct = malloc(gctd->ByteLegth);
-        fread(gct, 1, gctd->ByteLegth, file);
+
+        // Generate the GCT from each color present in file
+        std::vector<uint8_t> color;
+        color.resize(3);
+        for (int i = 0; i < gctd->NumberOfColors; i++) {
+            for (int i = 0; i < (int)color.size(); i++) {
+                fread(&color[i], 1, 1, file);
+            }
+
+            colorTable.push_back(color);
+            color.clear();
+            color.resize(3);
+        }
         printf("Successfully Loaded GCT Descriptor\n");
+
+        printf("\n------- Global Color Table -------\n");
+        // Just for a sanity check
+        for (std::vector<uint8_t> c : colorTable) {
+            printf("Red: %X\n", c[0]);
+            printf("Green: %X\n", c[1]);
+            printf("Blue: %X\n\n", c[2]);
+        }
+        printf("----------------------------------\n");
     } else {
         printf("Global Color Table Not Present\n");
     }
@@ -157,10 +183,6 @@ void GIF::LoadExtension(ExtensionHeader* header)
         if (*next == 0x00) {
             printf("Application block end\n");
         }
-        // Read terminator value and mov file position forward
-        // fread(&ae->Terminator, 1, 1, file);
-        
-        // free(ae); // Discarded Application extension
     } break;
     default:
     {
@@ -171,54 +193,37 @@ void GIF::LoadExtension(ExtensionHeader* header)
 
 void GIF::LoadImageData()
 {
+    using namespace ImageData;
+
     // Load the Image Descriptor
-    ImageDescriptor* imageDescriptor = (ImageDescriptor*)malloc(sizeof(ImageDescriptor));
-    fread(imageDescriptor, 1, sizeof(ImageDescriptor), file);
-    // PrintImageDescriptor(imageDescriptor);
+    Image img = Image();
+    img.descriptor = (ImageDescriptor*)malloc(sizeof(ImageDescriptor));
+    fread(img.descriptor, 1, sizeof(ImageDescriptor), file);
 
     // Load the Local Color Table if it is set
-    if ((imageDescriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1) {
+    if ((img.descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1) {
         printf("Loading Local color Table\n");
         // The current GIF I am trying to target does not have a need for a LCT so I am just
         // going to skip loading one for now (sucks to suck)
     } else {
-        printf("No Local Color Table Flag Set");
+        printf("No Local Color Table Flag Set\n");
     }
 
-    //Load Image Data (Time to implement LZW Compression)
-    ImageData* imageData = (ImageData*)malloc(sizeof(ImageData));
-    uint8_t* subBlockData;
-    fread(imageData, 1, 2, file); // Only read 2 bytes of file steam for LZW min and Follow Size
-    PrintImageData(imageData);
-    subBlockData = ReadImgDataSubBlock(imageData);
+    //Load Image Data (Time to implement LZW Compression) (Update: THIS SUCKS WHY DID I WANT TO DO THIS)
+    img.header = (ImageDataHeader*)malloc(sizeof(ImageDataHeader));
+    fread(img.header, 1, 2, file); // Only read 2 bytes of file steam for LZW min and Follow Size 
+
+    img.PrintData();
+    img.ReadDataSubBlocks(file);
+    imageData.push_back(img);
+
+
+    printf("Block count: %d\n", (int)img.subBlocks.size());
+    for (std::vector<uint8_t> block : img.subBlocks) {
+        LZW::Decompress(&img, colorTable, block);
+    }
 
     printf("Current File Pos: 0x%lX\n", ftell(file));
-}
-
-uint8_t* GIF::ReadImgDataSubBlock(ImageData* imgData)
-{
-    size_t subBlockSize = imgData->FollowSize;
-    uint8_t* subBlock = (uint8_t*)malloc(sizeof(uint8_t) * subBlockSize);
-    fread(subBlock, 1, subBlockSize, file);
-
-    uint8_t* nextByte = (uint8_t*)malloc(sizeof(uint8_t));
-    bool readingSubBlocks = true;
-
-    while (readingSubBlocks) {
-        fread(nextByte, 1, 1, file);
-        printf("Next Follow Size: 0x%X\n", *nextByte);
-
-        if (*nextByte != 0x00) {
-            subBlockSize += *nextByte;
-            subBlock = (uint8_t*)realloc(subBlock, subBlockSize);
-            fread(subBlock, 1, *nextByte, file);
-        } else {
-            printf("Finished Reading Data Sub Block\n");
-            readingSubBlocks = false;
-        }
-    }
-
-    return subBlock;
 }
 
 void GIF::CheckExtensions()
@@ -264,40 +269,5 @@ void GIF::PrintHeaderInfo()
         printf("\tSize: %d\n", gctd->SizeInLSD);
         printf("\tNumber of Colors: %d\n", gctd->NumberOfColors);
         printf("\tSize in bytes: %d\n", gctd->ByteLegth);
-        // printf("\tLocated in memory address: %p\n", gct);
     }
-    
-    // printf("[Graphic Control Extension]\n");
-    // printf("\tExtension Introducer: %X\n", gce->header.Introducer);
-    // printf("\tGraphic Control Label: %X\n", gce->header.Label);
-    // printf("\tDisposal Method: %d\n", (gce->Packed >> GCEMask::Disposal) & 0x07);
-    // printf("\tUser Input Flag: %d\n", (gce->Packed >> GCEMask::UserInput) & 0x01);
-    // printf("\tTransparent Flag: %d\n", (gce->Packed >> GCEMask::TransparentColor) & 0x01);
-    // printf("\tDelay Time: %d\n", gce->DelayTime);
-    // printf("\tTransparent Color Index: %d\n", gce->TransparentColorIndex);
-    // printf("\tBlock Terminator: %d\n", gce->BlockTerminator);
-    // printf("------------------------\n");
-}
-
-void GIF::PrintImageDescriptor(ImageDescriptor* descriptor)
-{
-    printf("------- Image Descriptor -------\n");
-    printf("Seperator: %X\n", descriptor->Seperator);
-    printf("Image Left: %d\n", descriptor->Left);
-    printf("Image Right: %d\n", descriptor->Right);
-    printf("Image Width: %d\n", descriptor->Width);
-    printf("Image Height: %d\n", descriptor->Height);
-    printf("Local Color Table Flag: %d\n", (descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1);
-    printf("Interlace Flag: %d\n", (descriptor->Packed >> ImgDescMask::Interlace) & 0x1);
-    printf("Sort Flag: %d\n", (descriptor->Packed >> ImgDescMask::IMGSort) & 0x1);
-    printf("Size of Local Color Table: %d\n", (descriptor->Packed >> ImgDescMask::IMGSize) & 0x7);
-    printf("--------------------------------\n");
-}
-
-void GIF::PrintImageData(ImageData* data)
-{
-    printf("\n------- Image Data -------\n");
-    printf("LZW Minimum: 0x%X\n", data->LZWMinimum);
-    printf("Initial Follow Size: 0x%X\n", data->FollowSize);
-    printf("--------------------------\n");
 }
