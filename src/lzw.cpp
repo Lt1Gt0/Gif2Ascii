@@ -59,7 +59,7 @@ std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<
             c = table[newCode][0];
         }
         
-        if (table[newCode][0] == char(colorTable->size() + 1) + 'A') {
+        if (table[newCode][0] == char(colorTable->size() + 1)) {
             printf("\nReinitializing Code table...\n");
             table = InitializeCodeTable(colorTable);
         }
@@ -84,13 +84,13 @@ std::unordered_map<int, std::string> LZW::InitializeCodeTable(std::vector<std::v
     int i = 0;
     for (; i < (int)colorTable->size(); i++) { 
         std::string ch = ""; 
-        ch += char(i) + 'A'; 
+        ch += char(i); 
         table[i] = ch; 
     }
 
-    table[i] = char(i) + 'A';
+    table[i] = char(i);
     i++;
-    table[i] = char(i) + 'A';
+    table[i] = char(i);
     
     return table;
 }

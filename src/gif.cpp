@@ -1,8 +1,11 @@
 #include "gif.h"
 #include "colortounicode.h"
+#include "lzw.h"
 
+#include <unistd.h>
 #include <stdio.h>
 #include <math.h>
+#include <unordered_map>
 
 GIF::GIF(FILE* fp)
 {
@@ -15,7 +18,7 @@ GIF::GIF(FILE* fp)
     printf("Total File Size: %.2ldkB\n", (filesize / 1024));
 
     // Load the GIF header into memory
-    this->header = (GifHeader*)malloc(sizeof(GifHeader));
+    this->header = new GifHeader; 
     fread(header, 1, sizeof(GifHeader), file);
 
     // Check for a valid GIF Header
@@ -38,20 +41,17 @@ void GIF::DataLoop()
     pixelMap.resize(lsd->Width * lsd->Height);
 
     // Dont look at this
-    // std::vector<std::vector<char>> frameMap;
+    std::vector<std::vector<char>> frameMap;
 
     // Because the pixel map is not initalized as a multi-dimensional array
     // The way that values of rows and columns will be accessed is like this
     // (char) pixel = PixelMap.at(Row * Width) + Col
 
-    printf("Image Width/Height: %d/%d\n", lsd->Width, lsd->Height);
     for (int row = 0; row < lsd->Height; row++) {
         for (int col = 0; col < lsd->Width; col++) {
             // By default just set the value at the char to ' '
             pixelMap.at((row * lsd->Width) + col) = ' ';
-            // printf("%c", PixelMap.at((row * lsd->Width) + col));
         }
-        // printf("\n");
     }
 
     // This while true should build up enough information for the frames of the gif
@@ -65,13 +65,8 @@ void GIF::DataLoop()
         printf("\nLoading Image Data...\n");
         std::string rasterData = img.LoadImageData();
 
-        // printf("Displaying Raster Data...\n");
-        // for (char c : rasterData) {
-        //     printf("%c", c);
-        // }
-        // printf("\n");
-
-        img.UpdateFrame(&rasterData, &pixelMap);
+        pixelMap = img.UpdateFrame(&rasterData, &pixelMap, lsd->Width, lsd->Height);
+        frameMap.push_back(pixelMap);
         
         fread(nextByte, 1, 1, file);
         fseek(file, -1, SEEK_CUR);
@@ -87,11 +82,55 @@ void GIF::DataLoop()
             }
         }
     }
+
+    std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
+    while (true) {
+        for (std::vector<char> frame : frameMap) {
+            
+            // Initialize variables for Image Display
+            int col = 0, sum = 0;
+            double averageBrightness;
+
+            for (char c : frame) {
+                if (col >= lsd->Width) {
+                    col = 0;
+                    fprintf(stderr, "\n");
+                }
+
+                // if (c == codeTable[(int)codeTable->size() - 1][0].c_str()) {
+                if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
+                    printf("%c - End of Information\n", c);
+                    break;
+                }
+
+                // If for some reason a character below 0 then leave the loop
+                if ((int)c < 0) 
+                    break;
+
+                std::vector<uint8_t> color = colorTable->at((int)c);
+
+                // Get the sum of each color brightness at the current code
+                for(uint8_t c : color) {
+                    sum += (int)c;
+                }
+
+                averageBrightness = sum / color.size();
+                // printf("Average Brightness: %f\n", averageBrightness);
+                fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
+
+                col++;
+                sum = 0;
+            }
+            printf("\n");
+            
+            sleep(1);
+        }
+    }
 }
 
 void GIF::ReadFileDataHeaders()
 {
-    lsd = (LogicalScreenDescriptor*)malloc(sizeof(LogicalScreenDescriptor));
+    lsd = new LogicalScreenDescriptor;
     fread(lsd, 1, sizeof(LogicalScreenDescriptor), file);
 
     // Check to see if the GCT flag is set
@@ -101,7 +140,7 @@ void GIF::ReadFileDataHeaders()
         colorTable = (std::vector<std::vector<uint8_t>>*)malloc(sizeof(std::vector<std::vector<uint8_t>>));
 
         // Load the Global Color Table Descriptor Data
-        gctd = (GlobalColorTableDescriptor*)malloc(sizeof(GlobalColorTableDescriptor));
+        gctd = new GlobalColorTableDescriptor;
         gctd->SizeInLSD = (lsd->Packed >> LSDMask::LSDSize) & 0x07;
         gctd->NumberOfColors = pow(2, gctd->SizeInLSD + 1);
         gctd->ByteLegth = 3 * gctd->NumberOfColors;
