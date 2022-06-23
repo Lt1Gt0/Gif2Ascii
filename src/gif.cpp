@@ -15,7 +15,7 @@ GIF::GIF(FILE* fp)
     fseek(file, 0, SEEK_END);
     this->filesize = ftell(file);
     rewind(file);
-    printf("Total File Size: %.2ldkB\n", (filesize / 1024));
+    fprintf(stdout, "Total File Size: %.2ldkB\n", (filesize / 1024));
 
     // Load the GIF header into memory
     this->header = new GifHeader; 
@@ -26,22 +26,20 @@ GIF::GIF(FILE* fp)
         fprintf(stderr, "Invalid GIF Format header...\n");
         exit(-1);
     } else {
-        printf("Valid GIF Header format\n");
+        fprintf(stdout, "Valid GIF Header format\n");
     }
 }
 
-void GIF::DataLoop()
+void GIF::GenerateFrameMap()
 {
-    uint8_t* nextByte = (uint8_t*)malloc(sizeof(uint8_t));
+    fprintf(stdout, "Generating Frame Map\n");
+    uint8_t nextByte;
     
     // Initialize the Pixel Map
 
     // Really stupid way to do this but eventually I will work out the issues
     std::vector<char> pixelMap;
     pixelMap.resize(lsd->Width * lsd->Height);
-
-    // Dont look at this
-    std::vector<std::vector<char>> frameMap;
 
     // Because the pixel map is not initalized as a multi-dimensional array
     // The way that values of rows and columns will be accessed is like this
@@ -54,6 +52,9 @@ void GIF::DataLoop()
         }
     }
 
+    FILE* rasterOutput = fopen("redirects/raster_out", "w+");
+    char* newline = "\n";
+
     // This while true should build up enough information for the frames of the gif
     while (true) {
         Image img = Image(file, colorTable);
@@ -62,29 +63,43 @@ void GIF::DataLoop()
         img.CheckExtensions();
         
         // Load the decompressed image data and draw the frame
-        printf("\nLoading Image Data...\n");
+        fprintf(stdout, "\nLoading Image Data...\n");
         std::string rasterData = img.LoadImageData();
 
-        pixelMap = img.UpdateFrame(&rasterData, &pixelMap, lsd->Width, lsd->Height);
+        // Because I have genuine brain worms I am going to print out the 
+        // raster data into a file and compare it to what it should be
+        for (char c : rasterData) {
+            char toWrite = char(c + 'A');
+            fwrite(&toWrite, 1, sizeof(char), rasterOutput);
+        }
+        fwrite(newline, 1, sizeof(char), rasterOutput);
+
+        img.UpdateFrame(&rasterData, &pixelMap, lsd);
         frameMap.push_back(pixelMap);
         
-        fread(nextByte, 1, 1, file);
+        fread(&nextByte, 1, sizeof(uint8_t), file);
         fseek(file, -1, SEEK_CUR);
         
         // Check if the file ended correctly (should end on 0x3B)
         if ((size_t)ftell(file) == filesize - 1) {
-            if (*nextByte == TRAILER) {
-                printf("File Ended Naturally\n");
+            if (nextByte == TRAILER) {
+                fprintf(stdout, "File Ended Naturally\n");
                 break;
             } else {
-                printf("File ended unaturally with byte [%X]\n", *nextByte);
+                fprintf(stdout, "File ended unaturally with byte [%X]\n", nextByte);
                 break;
             }
         }
     }
 
+
+}
+
+void GIF::LoopFrames()
+{
+    fprintf(stdout, "Looping Frames\n");
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
-    while (true) {
+    // while (true) {
         for (std::vector<char> frame : frameMap) {
             
             // Initialize variables for Image Display
@@ -97,9 +112,8 @@ void GIF::DataLoop()
                     fprintf(stderr, "\n");
                 }
 
-                // if (c == codeTable[(int)codeTable->size() - 1][0].c_str()) {
                 if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                    printf("%c - End of Information\n", c);
+                    fprintf(stdout, "%c - End of Information\n", c);
                     break;
                 }
 
@@ -115,17 +129,17 @@ void GIF::DataLoop()
                 }
 
                 averageBrightness = sum / color.size();
-                // printf("Average Brightness: %f\n", averageBrightness);
-                fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
+                fprintf(stderr, "%s", ColorToUnicode(&color));
+
+                // fprintf(stderr, "%c", (int)averageBrightness ? 'A' : ' ');
 
                 col++;
                 sum = 0;
             }
-            printf("\n");
-            
+            fprintf(stderr, "\n--------------------------------------------------\n");
             sleep(1);
         }
-    }
+    // }
 }
 
 void GIF::ReadFileDataHeaders()
@@ -135,7 +149,7 @@ void GIF::ReadFileDataHeaders()
 
     // Check to see if the GCT flag is set
     if (lsd->Packed >> LSDMask::GlobalColorTable) {
-        printf("Global Color Table Present\nLoading GCT Descriptor...\n");
+        fprintf(stdout, "Global Color Table Present\nLoading GCT Descriptor...\n");
 
         colorTable = (std::vector<std::vector<uint8_t>>*)malloc(sizeof(std::vector<std::vector<uint8_t>>));
 
@@ -150,25 +164,25 @@ void GIF::ReadFileDataHeaders()
         color.resize(3);
         for (int i = 0; i < gctd->NumberOfColors; i++) {
             for (int i = 0; i < (int)color.size(); i++) {
-                fread(&color[i], 1, 1, file);
+                fread(&color[i], 1, sizeof(char), file);
             }
 
             colorTable->push_back(color);
             color.clear();
             color.resize(3);
         }
-        printf("Successfully Loaded GCT Descriptor\n");
+        fprintf(stdout, "Successfully Loaded GCT Descriptor\n");
 
         // Just for a sanity check print out each color in the GCT
-        printf("\n------- Global Color Table -------\n");
+        fprintf(stdout, "\n------- Global Color Table -------\n");
         for (std::vector<uint8_t> c : *colorTable) {
-            printf("Red: %X\n", c[0]);
-            printf("Green: %X\n", c[1]);
-            printf("Blue: %X\n\n", c[2]);
+            fprintf(stdout, "Red: %X\n", c[0]);
+            fprintf(stdout, "Green: %X\n", c[1]);
+            fprintf(stdout, "Blue: %X\n\n", c[2]);
         }
-        printf("----------------------------------\n");
+        fprintf(stdout, "----------------------------------\n");
     } else {
-        printf("Global Color Table Not Present\n");
+        fprintf(stdout, "Global Color Table Not Present\n");
     }
 }
 
@@ -186,26 +200,26 @@ bool GIF::ValidHeader()
 
 void GIF::PrintHeaderInfo()
 {   
-    printf("\n------- GIF INFO -------\n");
+    fprintf(stdout, "\n------- GIF INFO -------\n");
 
-    printf("[Header]\n");
-    printf("\tSignature: %s\n", header->Signature);
-    printf("\tVersion: %s\n", header->Version);
+    fprintf(stdout, "[Header]\n");
+    fprintf(stdout, "\tSignature: %s\n", header->Signature);
+    fprintf(stdout, "\tVersion: %s\n", header->Version);
 
-    printf("[Logical Screen Descriptor]\n");
-    printf("\tWidth: %d\n", lsd->Width);
-    printf("\tHeight: %d\n", lsd->Height);
-    printf("\tGlobal Color Table Flag: %d\n", (lsd->Packed >> LSDMask::GlobalColorTable) & 0x1);
-    printf("\tColor Resolution: %d\n", (lsd->Packed >> LSDMask::ColorResolution) & 0x07);
-    printf("\tSort Flag: %d\n", (lsd->Packed >> LSDMask::LSDSort) & 0x01);
-    printf("\tGlobal Color Table Size: %d\n", (lsd->Packed >> LSDMask::LSDSize) & 0x07);
-    printf("\tBackground Color Index: %d\n", lsd->BackgroundColorIndex);
-    printf("\tPixel Aspect Ratio: %d\n", lsd->PixelAspectRatio);
+    fprintf(stdout, "[Logical Screen Descriptor]\n");
+    fprintf(stdout, "\tWidth: %d\n", lsd->Width);
+    fprintf(stdout, "\tHeight: %d\n", lsd->Height);
+    fprintf(stdout, "\tGlobal Color Table Flag: %d\n", (lsd->Packed >> LSDMask::GlobalColorTable) & 0x1);
+    fprintf(stdout, "\tColor Resolution: %d\n", (lsd->Packed >> LSDMask::ColorResolution) & 0x07);
+    fprintf(stdout, "\tSort Flag: %d\n", (lsd->Packed >> LSDMask::LSDSort) & 0x01);
+    fprintf(stdout, "\tGlobal Color Table Size: %d\n", (lsd->Packed >> LSDMask::LSDSize) & 0x07);
+    fprintf(stdout, "\tBackground Color Index: %d\n", lsd->BackgroundColorIndex);
+    fprintf(stdout, "\tPixel Aspect Ratio: %d\n", lsd->PixelAspectRatio);
 
     if (lsd->Packed >> LSDMask::GlobalColorTable) {
-        printf("[Global Color Table]\n");
-        printf("\tSize: %d\n", gctd->SizeInLSD);
-        printf("\tNumber of Colors: %d\n", gctd->NumberOfColors);
-        printf("\tSize in bytes: %d\n", gctd->ByteLegth);
+        fprintf(stdout, "[Global Color Table]\n");
+        fprintf(stdout, "\tSize: %d\n", gctd->SizeInLSD);
+        fprintf(stdout, "\tNumber of Colors: %d\n", gctd->NumberOfColors);
+        fprintf(stdout, "\tSize in bytes: %d\n", gctd->ByteLegth);
     }
 }

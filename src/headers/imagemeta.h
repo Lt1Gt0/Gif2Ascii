@@ -79,7 +79,7 @@ struct GraphicsControlExtension {
 } __attribute__((packed));
 
 struct PlainTextExtension {
-    ExtensionHeader header;
+    ExtensionHeader Header;
     uint8_t         BlockSize;
     uint8_t*        Data;
     uint8_t         Terminator;

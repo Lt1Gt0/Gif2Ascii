@@ -3,6 +3,7 @@
 #define _GIF_IMAGE_DATA_H
 
 #include "imagemeta.h"
+#include "gifmeta.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string>
@@ -28,14 +29,14 @@ class Image
         std::string LoadImageData();
         void CheckExtensions();
 
-        std::vector<char> UpdateFrame(std::string* rasterData, std::vector<char>* origPixMap, int gifWidth, int gifHeight);
+        void UpdateFrame(std::string* rasterData, std::vector<char>* pixMap, LogicalScreenDescriptor* lsd);
 
     private:
         void PrintDescriptor();
         void PrintSubBlockData(std::vector<uint8_t> block);
 
         // Different Drawing behaviors based off Disposal Methods
-        void DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, int gifWidth, int gifHeight);
+        void DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
         void RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap);
         void RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap);
 };

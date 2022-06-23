@@ -14,17 +14,18 @@ int main()
     FILE* fp = fopen(filepath, "rb");
     if (fp == NULL) {
         fprintf(stderr, "Error opening file [%s]\n", filepath);
-        return -1;
+        return 1;
     } else {
-        printf("Successfully opened [%s]\n", filepath);
+        fprintf(stdout, "Successfully opened [%s]\n", filepath);
     }
 
     GIF* gif = new GIF(fp);
-    printf("Reading File Information Data...\n");
+    fprintf(stdout, "Reading File Information Data...\n");
     
     gif->ReadFileDataHeaders();
     // gif.PrintHeaderInfo(); // Debug
-    gif->DataLoop();
+    gif->GenerateFrameMap();
+    gif->LoopFrames();
 
     return 0;
 }

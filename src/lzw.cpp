@@ -5,7 +5,7 @@
 
 std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<uint8_t>>* colorTable, std::vector<uint8_t> codestream)
 {
-    printf("Decompressing stream...\n");
+    fprintf(stdout, "Decompressing stream...\n");
 
     std::unordered_map<int, std::string> table;
     std::string charstream = ""; 
@@ -21,7 +21,7 @@ std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<
 
     // Check for clearcode
     if (newCode == 4) {
-        printf("Encountered Clear Code...\n");
+        fprintf(stdout, "Encountered Clear Code...\n");
         table = InitializeCodeTable(colorTable);
     }
 
@@ -60,7 +60,7 @@ std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<
         }
         
         if (table[newCode][0] == char(colorTable->size() + 1)) {
-            printf("\nReinitializing Code table...\n");
+            fprintf(stdout, "\nReinitializing Code table...\n");
             table = InitializeCodeTable(colorTable);
         }
 

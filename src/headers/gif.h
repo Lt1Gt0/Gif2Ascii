@@ -18,12 +18,14 @@ class GIF
         GlobalColorTableDescriptor* gctd;
         std::vector<Image> imageData;
         std::vector<std::vector<uint8_t>>* colorTable; // If the flag is present then the gct will be filled
+        std::vector<std::vector<char>> frameMap;
 
     public:
         GIF(FILE* fp);
         void ReadFileDataHeaders();
         int LoadHeader();
-        void DataLoop();
+        void GenerateFrameMap();
+        void LoopFrames();
         void PrintHeaderInfo();
 
     private:
