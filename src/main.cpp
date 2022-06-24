@@ -1,4 +1,6 @@
 #include "gif.h"
+#include "errorhandler.h"
+#include "Debug/debug.h"
 
 /*
     The current version of this converter only works on gif89a not gif87a
@@ -7,25 +9,27 @@
     in the future I will add more compatibility
 */
 
-int main()
+int main(int argc, char** argv)
 {
-    const char* filepath = "imgs/red_small.gif";
+    if (argc < 2) {
+        ErrorHandler::err_n_die("Usage: %s <filepath>", argv[0]);
+    }
+    const char* filepath = argv[1];
     
     FILE* fp = fopen(filepath, "rb");
     if (fp == NULL) {
-        fprintf(stderr, "Error opening file [%s]\n", filepath);
-        return 1;
+        ErrorHandler::err_n_die("Error opening file [%s]", filepath);
     } else {
-        fprintf(stdout, "Successfully opened [%s]\n", filepath);
+        Debug::Print("Successfully opened [%s]", filepath);
     }
 
     GIF* gif = new GIF(fp);
-    fprintf(stdout, "Reading File Information Data...\n");
+    Debug::Print("Reading File Information Data...");
     
     gif->ReadFileDataHeaders();
     // gif.PrintHeaderInfo(); // Debug
     gif->GenerateFrameMap();
-    gif->LoopFrames();
+    // gif->LoopFrames();
 
     return 0;
 }

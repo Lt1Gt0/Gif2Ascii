@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include "lzw.h"
 #include "colortounicode.h"
+#include "errorhandler.h"
+#include "Debug/debug.h"
 
 Image::Image(FILE* fp, std::vector<std::vector<uint8_t>>* colortable)
 {
@@ -26,14 +28,13 @@ std::string Image::LoadImageData()
     // The current GIF I am trying to target does not have a need for a LCT so I am just
     // going to skip loading one for now (sucks to suck)
     if ((descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1)
-        fprintf(stdout, "Loading Local color Table\n");
-    else 
-        fprintf(stdout, "No Local Color Table Flag Set\n");
+        Debug::Print("Loading Local Color Table");
+    else
+        Debug::Print("No Local Color Table Flag Set");
 
     // Load the image header into memory
     header = new ImageDataHeader;
     fread(header, 1, sizeof(ImageDataHeader), file); // Only read 2 bytes of file steam for LZW min and Follow Size 
-
     ReadDataSubBlocks(file);
 
     // Get the raster data from the image frame by decompressing the data block from the gif
@@ -74,11 +75,12 @@ void Image::ReadDataSubBlocks(FILE* file)
     }
     
     fprintf(stdout, "\n");
+    fflush(stdout);
 }
 
 void Image::CheckExtensions()
 {
-    fprintf(stdout, "\nChecking for extensions...\n");
+    Debug::Print("\nChecking for extensions...");
 
     // Load a dummy header into memory
     ExtensionHeader* extensionCheck = (ExtensionHeader*)malloc(sizeof(ExtensionHeader));
@@ -106,7 +108,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     switch (header->Label) {
     case ExtensionTypes::PlainText:
     {
-        fprintf(stdout, "Loding Plain Text Extension\n");
+        Debug::Print("Loding Plain Text Extension");
 
         // Load Header
         extensions->PlainText = new PlainTextExtension;
@@ -120,7 +122,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     } break;
     case ExtensionTypes::GraphicsControl:
     {
-        fprintf(stdout, "Loading Graphics Control Extension\n");
+        Debug::Print("Loading Graphics Control Extension");
 
         // Load The entire Graphic Control Extension
         extensions->GraphicsControl = new GraphicsControlExtension;
@@ -128,7 +130,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     } break;
     case ExtensionTypes::Comment:
     {
-        fprintf(stdout, "Loding Comment Extension\n");
+        Debug::Print("Loding Comment Extension");
 
         // Load Header
         extensions->Comment = new CommentExtension;
@@ -143,7 +145,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     } break;
     case ExtensionTypes::Application:
     {
-        fprintf(stdout, "Loading Application Extension\n");
+        Debug::Print("Loading Application Extension");
 
         // Load Header
         extensions->Application = new ApplicationExtension;
@@ -164,11 +166,11 @@ void Image::LoadExtension(ExtensionHeader* header)
         // Check if the next byte in the file is the terminator
         fread(&tmp, 1, sizeof(uint8_t), file);
         if (!tmp)
-            fprintf(stdout, "End of Application Extension\n");
+            Debug::Print("End of Application Extension");
     } break;
     default:
     {
-        fprintf(stderr, "Recived Invalid extension type [%X]\n", header->Label);
+        Debug::PrintErr("Recived Invalid extension type [%X]", header->Label);
         fseek(file, 2, SEEK_CUR); // Restore the file position to where it was after reading header
     } break;
     }
@@ -197,15 +199,14 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, L
     case 7:
         break;
     default:
-        fprintf(stderr, "Undefined Disposal Method: %d\n", disposalMethod);
-        exit(-1);
+        ErrorHandler::err_n_die("Undefined Disposal Method: %d\n", Disposal);
         break;
     }
 }
 
 void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
 {
-    fprintf(stdout, "Drawing Over Image\n");
+    Debug::Print("Drawing Over Image");
     int offset;
     int currentChar = 0;
     for (int row = 0; row < descriptor->Height; row++) {
@@ -221,43 +222,43 @@ void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, 
 
 void Image::RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap)
 {
-    fprintf(stdout, "Restore Canvas to Background\n");
+    Debug::Print("Restore Canvas to Background");
 }
 
 void Image::RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap)
 {
-    fprintf(stdout, "Restore Canvas to Previous State\n");
+    Debug::Print("Restore Canvas to Previous State");
 }
 
 void Image::PrintDescriptor()
 {
-    fprintf(stdout, "------- Image Descriptor -------\n");
-    fprintf(stdout, "Seperator: %X\n", descriptor->Seperator);
-    fprintf(stdout, "Image Left: %d\n", descriptor->Left);
-    fprintf(stdout, "Image Top: %d\n", descriptor->Top);
-    fprintf(stdout, "Image Width: %d\n", descriptor->Width);
-    fprintf(stdout, "Image Height: %d\n", descriptor->Height);
-    fprintf(stdout, "Local Color Table Flag: %d\n", (descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1);
-    fprintf(stdout, "Interlace Flag: %d\n", (descriptor->Packed >> ImgDescMask::Interlace) & 0x1);
-    fprintf(stdout, "Sort Flag: %d\n", (descriptor->Packed >> ImgDescMask::IMGSort) & 0x1);
-    fprintf(stdout, "Size of Local Color Table: %d\n", (descriptor->Packed >> ImgDescMask::IMGSize) & 0x7);
-    fprintf(stdout, "--------------------------------\n");
+    Debug::Print("------- Image Descriptor -------");
+    Debug::Print("Seperator: %X", descriptor->Seperator);
+    Debug::Print("Image Left: %d", descriptor->Left);
+    Debug::Print("Image Top: %d", descriptor->Top);
+    Debug::Print("Image Width: %d", descriptor->Width);
+    Debug::Print("Image Height: %d", descriptor->Height);
+    Debug::Print("Local Color Table Flag: %d", (descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1);
+    Debug::Print("Interlace Flag: %d", (descriptor->Packed >> ImgDescMask::Interlace) & 0x1);
+    Debug::Print("Sort Flag: %d", (descriptor->Packed >> ImgDescMask::IMGSort) & 0x1);
+    Debug::Print("Size of Local Color Table: %d", (descriptor->Packed >> ImgDescMask::IMGSize) & 0x7);
+    Debug::Print("--------------------------------");
 }
 
 void Image::PrintData()
 {
-    fprintf(stdout, "\n------- Image Data -------\n");
-    fprintf(stdout, "LZW Minimum: 0x%X\n", header->LZWMinimum);
-    fprintf(stdout, "Initial Follow Size: 0x%X\n", header->FollowSize);
-    fprintf(stdout, "--------------------------\n");
+    Debug::Print("\n------- Image Data -------");
+    Debug::Print("LZW Minimum: 0x%X", header->LZWMinimum);
+    Debug::Print("Initial Follow Size: 0x%X", header->FollowSize);
+    Debug::Print("--------------------------");
 }
 
 void Image::PrintSubBlockData(std::vector<uint8_t>* block)
 {
-    fprintf(stdout, "\n------- Block Data -------\n");
-    fprintf(stdout, "Size: %ld\n", block->size());
+    Debug::Print("\n------- Block Data -------");
+    Debug::Print("Size: %ld\n", block->size());
     for (int i = 0; i < (int)block->size(); i++) {
         fprintf(stdout, "%X ", block->at(i));
     }
-    fprintf(stdout, "\n--------------------------\n");
+    Debug::Print("\n--------------------------");
 }
