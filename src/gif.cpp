@@ -108,8 +108,6 @@ void GIF::GenerateFrameMap()
         fprintf(stdout, "\nLoading Image Data...\n");
         std::string rasterData = img.LoadImageData();
 
-        printf("%d\n", rasterData.size());
-
         img.UpdatePixelMap(&pixelMap, &rasterData, lsd);
         frameMap.push_back(pixelMap);
         
@@ -132,7 +130,8 @@ void GIF::LoopFrames()
 {
     // fprintf(stdout, "Looping Frames\n");
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
-    // while (true) {
+    system("clear");
+    while (true) {
         for (std::vector<char> frame : frameMap) {
             
             // Initialize variables for Image Display
@@ -154,6 +153,7 @@ void GIF::LoopFrames()
                 if ((int)c < 0) 
                     break;
 
+                // fprintf(stdout, "c -> int: %d\n", (int)c);
                 std::vector<uint8_t> color = colorTable->at((int)c);
 
                 // Get the sum of each color brightness at the current code
@@ -162,18 +162,19 @@ void GIF::LoopFrames()
                 }
 
                 averageBrightness = sum / color.size();
-                // fprintf(stderr, "%s", ColorToUnicode(&color));
-                fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
+                fprintf(stderr, "%s", ColorToUnicode(&color));
+                // fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
 
                 col++;
                 sum = 0;
             }
 
-            fprintf(stderr, "\n--------------------------------------------------\n");
-            sleep(1);
-            // system("clear");
+            // fprintf(stderr, "\n--------------------------------------------------\n");
+            // sleep(1);
+            usleep(60000);
+            system("clear");
         }
-    // }
+    }
 }
 
 bool GIF::ValidHeader()

@@ -5,6 +5,10 @@
 
 std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<uint8_t>>* colorTable, std::vector<uint8_t> codestream)
 {
+    // if (codestream.size() <= 0) {
+    //     return "";
+    // }
+
     fprintf(stdout, "Decompressing stream...\n");
 
     std::unordered_map<int, std::string> table;
