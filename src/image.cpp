@@ -11,6 +11,31 @@ Image::Image(FILE* fp, std::vector<std::vector<uint8_t>>* colortable)
     this->colorTable = colortable;
 }
 
+std::string Image::LoadImageData()
+{
+    // Load the Image Descriptor into memory
+    descriptor = new ImageDescriptor;
+    fread(descriptor, 1, sizeof(ImageDescriptor), file);
+
+    // Load the Local Color Table if it is set 
+    // The current GIF I am trying to target does not have a need for a LCT so I am just
+    // going to skip loading one for now (sucks to suck)
+    if ((descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1)
+        fprintf(stdout, "Loading Local color Table\n");
+    else 
+        fprintf(stdout, "No Local Color Table Flag Set\n");
+
+    // Load the image header into memory
+    header = new ImageDataHeader;
+    fread(header, 1, sizeof(ImageDataHeader), file); // Only read 2 bytes of file steam for LZW min and Follow Size 
+
+    ReadDataSubBlocks(file);
+
+    // Get the raster data from the image frame by decompressing the data block from the gif
+    std::string rasterData = LZW::Decompress(header, colorTable, data);
+    return rasterData;
+}
+
 void Image::ReadDataSubBlocks(FILE* file)
 {
     data.resize(header->FollowSize);
@@ -46,6 +71,27 @@ void Image::ReadDataSubBlocks(FILE* file)
     }
     
     fprintf(stdout, "\n");
+}
+
+void Image::CheckExtensions()
+{
+    fprintf(stdout, "\nChecking for extensions...\n");
+
+    // Load a dummy header into memory
+    ExtensionHeader* extensionCheck = (ExtensionHeader*)malloc(sizeof(ExtensionHeader));
+
+    while (true) {
+        fread(extensionCheck, 1, sizeof(ExtensionHeader), file);
+
+        // If the dummy header contains an introducer for a extension, load the extension type
+        if (extensionCheck->Introducer == EXTENSION_INTRODUCER) {
+            LoadExtension(extensionCheck);
+        } else {
+            fseek(file, -2, SEEK_CUR);
+            free(extensionCheck);
+            return;
+        }
+    }
 }
 
 void Image::LoadExtension(ExtensionHeader* header)
@@ -124,53 +170,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     }
 }
 
-std::string Image::LoadImageData()
-{
-    // Load the Image Descriptor into memory
-    descriptor = new ImageDescriptor;
-    fread(descriptor, 1, sizeof(ImageDescriptor), file);
-
-    // Load the Local Color Table if it is set 
-    // The current GIF I am trying to target does not have a need for a LCT so I am just
-    // going to skip loading one for now (sucks to suck)
-    if ((descriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1)
-        fprintf(stdout, "Loading Local color Table\n");
-    else 
-        fprintf(stdout, "No Local Color Table Flag Set\n");
-
-    // Load the image header into memory
-    header = new ImageDataHeader;
-    fread(header, 1, sizeof(ImageDataHeader), file); // Only read 2 bytes of file steam for LZW min and Follow Size 
-
-    ReadDataSubBlocks(file);
-
-    // Get the raster data from the image frame by decompressing the data block from the gif
-    std::string rasterData = LZW::Decompress(header, colorTable, data);
-    return rasterData;
-}
-
-void Image::CheckExtensions()
-{
-    fprintf(stdout, "\nChecking for extensions...\n");
-
-    // Load a dummy header into memory
-    ExtensionHeader* extensionCheck = (ExtensionHeader*)malloc(sizeof(ExtensionHeader));
-
-    while (true) {
-        fread(extensionCheck, 1, sizeof(ExtensionHeader), file);
-
-        // If the dummy header contains an introducer for a extension, load the extension type
-        if (extensionCheck->Introducer == EXTENSION_INTRODUCER) {
-            LoadExtension(extensionCheck);
-        } else {
-            fseek(file, -2, SEEK_CUR);
-            free(extensionCheck);
-            return;
-        }
-    }
-}
-
-void Image::UpdateFrame(std::string* rasterData, std::vector<char>* pixMap, LogicalScreenDescriptor* lsd)
+void Image::UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, LogicalScreenDescriptor* lsd)
 {
     // Because each gif can have a different disposal method for different frames (according to GIF89a)
     // it is best to handle each disposal method instread of printing the decompressed codestream directly
@@ -199,6 +199,30 @@ void Image::UpdateFrame(std::string* rasterData, std::vector<char>* pixMap, Logi
     }
 }
 
+void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
+{
+    fprintf(stdout, "Drawing Over Image\n");
+    int offset;
+    int currentChar = 0;
+    for (int row = 0; row < descriptor->Height; row++) {
+        for (int col = 0; col < descriptor->Width; col++) {
+            offset = ((row + descriptor->Top) * lsd->Width) + (col + descriptor->Left);
+            pixelMap->at(offset) = rasterData->at(currentChar);
+            currentChar++;
+        }
+    }
+}
+
+void Image::RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap)
+{
+    fprintf(stdout, "Restore Canvas to Background\n");
+}
+
+void Image::RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap)
+{
+    fprintf(stdout, "Restore Canvas to Previous State\n");
+}
+
 void Image::PrintDescriptor()
 {
     fprintf(stdout, "------- Image Descriptor -------\n");
@@ -222,36 +246,12 @@ void Image::PrintData()
     fprintf(stdout, "--------------------------\n");
 }
 
-void Image::PrintSubBlockData(std::vector<uint8_t> block)
+void Image::PrintSubBlockData(std::vector<uint8_t>* block)
 {
     fprintf(stdout, "\n------- Block Data -------\n");
-    fprintf(stdout, "Size: %ld\n", block.size());
-    for (int i = 0; i < (int)block.size(); i++) {
-        fprintf(stdout, "%X ", block.at(i));
+    fprintf(stdout, "Size: %ld\n", block->size());
+    for (int i = 0; i < (int)block->size(); i++) {
+        fprintf(stdout, "%X ", block->at(i));
     }
     fprintf(stdout, "\n--------------------------\n");
-}
-
-void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
-{
-    fprintf(stdout, "Drawing Over Image\n");
-    int offset;
-    int currentChar = 0;
-    for (int row = 0; row < descriptor->Height; row++) {
-        for (int col = 0; col < descriptor->Width; col++) {
-            offset = ((row + descriptor->Top) * lsd->Width) + (col + descriptor->Left);
-            pixelMap->at(offset) = rasterData->at(currentChar);
-            currentChar++;
-        }
-    }
-}
-
-void Image::RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap)
-{
-    fprintf(stdout, "Restore Canvas to Background\n");
-}
-
-void Image::RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap)
-{
-    fprintf(stdout, "Restore Canvas to Previous State\n");
 }

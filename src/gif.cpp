@@ -30,118 +30,6 @@ GIF::GIF(FILE* fp)
     }
 }
 
-void GIF::GenerateFrameMap()
-{
-    fprintf(stdout, "Generating Frame Map\n");
-    uint8_t nextByte;
-    
-    // Initialize the Pixel Map
-
-    // Really stupid way to do this but eventually I will work out the issues
-    std::vector<char> pixelMap;
-    pixelMap.resize(lsd->Width * lsd->Height);
-
-    // Because the pixel map is not initalized as a multi-dimensional array
-    // The way that values of rows and columns will be accessed is like this
-    // (char) pixel = PixelMap.at(Row * Width) + Col
-
-    for (int row = 0; row < lsd->Height; row++) {
-        for (int col = 0; col < lsd->Width; col++) {
-            // By default just set the value at the char to ' '
-            pixelMap.at((row * lsd->Width) + col) = ' ';
-        }
-    }
-
-    FILE* rasterOutput = fopen("redirects/raster_out", "w+");
-    char* newline = "\n";
-
-    // This while true should build up enough information for the frames of the gif
-    while (true) {
-        Image img = Image(file, colorTable);
-
-        // Load Image Extenstion information before proceeding with parsing image data
-        img.CheckExtensions();
-        
-        // Load the decompressed image data and draw the frame
-        fprintf(stdout, "\nLoading Image Data...\n");
-        std::string rasterData = img.LoadImageData();
-
-        // Because I have genuine brain worms I am going to print out the 
-        // raster data into a file and compare it to what it should be
-        for (char c : rasterData) {
-            char toWrite = char(c + 'A');
-            fwrite(&toWrite, 1, sizeof(char), rasterOutput);
-        }
-        fwrite(newline, 1, sizeof(char), rasterOutput);
-
-        img.UpdateFrame(&rasterData, &pixelMap, lsd);
-        frameMap.push_back(pixelMap);
-        
-        fread(&nextByte, 1, sizeof(uint8_t), file);
-        fseek(file, -1, SEEK_CUR);
-        
-        // Check if the file ended correctly (should end on 0x3B)
-        if ((size_t)ftell(file) == filesize - 1) {
-            if (nextByte == TRAILER) {
-                fprintf(stdout, "File Ended Naturally\n");
-                break;
-            } else {
-                fprintf(stdout, "File ended unaturally with byte [%X]\n", nextByte);
-                break;
-            }
-        }
-    }
-
-
-}
-
-void GIF::LoopFrames()
-{
-    fprintf(stdout, "Looping Frames\n");
-    std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
-    // while (true) {
-        for (std::vector<char> frame : frameMap) {
-            
-            // Initialize variables for Image Display
-            int col = 0, sum = 0;
-            double averageBrightness;
-
-            for (char c : frame) {
-                if (col >= lsd->Width) {
-                    col = 0;
-                    fprintf(stderr, "\n");
-                }
-
-                if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                    fprintf(stdout, "%c - End of Information\n", c);
-                    break;
-                }
-
-                // If for some reason a character below 0 then leave the loop
-                if ((int)c < 0) 
-                    break;
-
-                std::vector<uint8_t> color = colorTable->at((int)c);
-
-                // Get the sum of each color brightness at the current code
-                for(uint8_t c : color) {
-                    sum += (int)c;
-                }
-
-                averageBrightness = sum / color.size();
-                fprintf(stderr, "%s", ColorToUnicode(&color));
-
-                // fprintf(stderr, "%c", (int)averageBrightness ? 'A' : ' ');
-
-                col++;
-                sum = 0;
-            }
-            fprintf(stderr, "\n--------------------------------------------------\n");
-            sleep(1);
-        }
-    // }
-}
-
 void GIF::ReadFileDataHeaders()
 {
     lsd = new LogicalScreenDescriptor;
@@ -184,6 +72,117 @@ void GIF::ReadFileDataHeaders()
     } else {
         fprintf(stdout, "Global Color Table Not Present\n");
     }
+}
+
+void GIF::GenerateFrameMap()
+{
+    fprintf(stdout, "Generating Frame Map\n");
+    uint8_t nextByte;
+    
+    // Initialize the Pixel Map
+
+    // Really stupid way to do this but eventually I will work out the issues
+    std::vector<char> pixelMap;
+    pixelMap.resize(lsd->Width * lsd->Height);
+
+    // Because the pixel map is not initalized as a multi-dimensional array
+    // The way that values of rows and columns will be accessed is like this
+    // (char) pixel = PixelMap.at(Row * Width) + Col
+
+    for (int row = 0; row < lsd->Height; row++) {
+        for (int col = 0; col < lsd->Width; col++) {
+            // By default just set the value at the char to ' '
+            pixelMap.at((row * lsd->Width) + col) = ' ';
+        }
+    }
+
+    FILE* rasterOutput = fopen("redirects/raster_out", "w+");
+    char* newline = "\n";
+
+    // This while true should build up enough information for the frames of the gif
+    while (true) {
+        Image img = Image(file, colorTable);
+
+        // Load Image Extenstion information before proceeding with parsing image data
+        img.CheckExtensions();
+        
+        // Load the decompressed image data and draw the frame
+        fprintf(stdout, "\nLoading Image Data...\n");
+        std::string rasterData = img.LoadImageData();
+
+        // Because I have genuine brain worms I am going to print out the 
+        // raster data into a file and compare it to what it should be
+        for (char c : rasterData) {
+            char toWrite = char(c + 'A');
+            fwrite(&toWrite, 1, sizeof(char), rasterOutput);
+        }
+
+        fwrite(newline, 1, sizeof(char), rasterOutput);
+
+        img.UpdatePixelMap(&pixelMap, &rasterData, lsd);
+        frameMap.push_back(pixelMap);
+        
+        fread(&nextByte, 1, sizeof(uint8_t), file);
+        fseek(file, -1, SEEK_CUR);
+        
+        // Check if the file ended correctly (should end on 0x3B)
+        if ((size_t)ftell(file) == filesize - 1) {
+            if (nextByte == TRAILER) {
+                fprintf(stdout, "File Ended Naturally\n");
+                break;
+            } else {
+                fprintf(stdout, "File ended unaturally with byte [%X]\n", nextByte);
+                break;
+            }
+        }
+    }
+}
+
+void GIF::LoopFrames()
+{
+    fprintf(stdout, "Looping Frames\n");
+    std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
+    // while (true) {
+        for (std::vector<char> frame : frameMap) {
+            
+            // Initialize variables for Image Display
+            int col = 0, sum = 0;
+            double averageBrightness;
+
+            for (char c : frame) {
+                if (col >= lsd->Width) {
+                    col = 0;
+                    fprintf(stderr, "\n");
+                }
+
+                if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
+                    fprintf(stdout, "%c - End of Information\n", c);
+                    break;
+                }
+
+                // If for some reason a character below 0 then leave the loop
+                if ((int)c < 0) 
+                    break;
+
+                std::vector<uint8_t> color = colorTable->at((int)c);
+
+                // Get the sum of each color brightness at the current code
+                for(uint8_t c : color) {
+                    sum += (int)c;
+                }
+
+                averageBrightness = sum / color.size();
+                fprintf(stderr, "%s", ColorToUnicode(&color));
+                // fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
+                // fprintf(stderr, "%c", (int)averageBrightness ? 'A' : ' ');
+
+                col++;
+                sum = 0;
+            }
+            fprintf(stderr, "\n--------------------------------------------------\n");
+            sleep(1);
+        }
+    // }
 }
 
 bool GIF::ValidHeader()

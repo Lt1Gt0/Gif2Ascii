@@ -6,11 +6,11 @@ char* BrightnessToUnicode(double brightness)
 
     // Nah brightness dont matter
     if ((int)brightness >= 50 && (int)brightness < 70) {
-        projectedChar = (char*)"-"; // PlaceHolder
-        // projectedChar = (char*)u8"\u0D9E";
+        // projectedChar = (char*)"-"; // PlaceHolder
+        projectedChar = (char*)u8"\u0D9E";
     } else if ((int)brightness > 75) {
-        // projectedChar = (char*)u8"\u0DB0";
-        projectedChar = (char*)"|"; // PlaceHolder
+        projectedChar = (char*)u8"\u0DB0";
+        // projectedChar = (char*)"|"; // PlaceHolder
     } else {
         projectedChar = (char*)" ";
     }

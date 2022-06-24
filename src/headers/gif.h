@@ -23,13 +23,14 @@ class GIF
     public:
         GIF(FILE* fp);
         void ReadFileDataHeaders();
-        int LoadHeader();
         void GenerateFrameMap();
         void LoopFrames();
-        void PrintHeaderInfo();
 
     private:
         bool ValidHeader();
+        
+        // Debug Print
+        void PrintHeaderInfo();
 };
 
 #endif // _GIF_H
