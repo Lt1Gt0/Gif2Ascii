@@ -8,11 +8,10 @@
 #include <string>
 
 #include "image.h"
-// #include "imagemeta.h"
 
 namespace LZW 
 {
-    std::string Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<uint8_t>>* colorTable, std::vector<SubBlock*>* codestreamBlocks);
+    std::string Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<uint8_t>>* colorTable, std::vector<uint8_t> codestream);
 
     /**
      * Initialize a code table based off the size of a given color table
@@ -21,8 +20,6 @@ namespace LZW
      * @return std::unordered_map<int, std::string> Code Table
      */
     std::unordered_map<int, std::string> InitializeCodeTable(std::vector<std::vector<uint8_t>>* colorTable);
-
-    std::vector<uint8_t> UnpackSubBlocks(std::vector<SubBlock*>* SubBlocks);
 }
 
 #endif // _LZW_H

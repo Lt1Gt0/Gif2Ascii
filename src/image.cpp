@@ -13,7 +13,7 @@ Image::Image(FILE* fp, std::vector<std::vector<uint8_t>>* colortable)
     this->descriptor = new ImageDescriptor;
     this->header = new ImageDataHeader;
     this->extensions = new ImageExtensions;
-    this->dataBlock = std::vector<SubBlock*>();
+    this->data = std::vector<uint8_t>();
 }
 
 std::string Image::LoadImageData()
@@ -37,43 +37,42 @@ std::string Image::LoadImageData()
     ReadDataSubBlocks(file);
 
     // Get the raster data from the image frame by decompressing the data block from the gif
-    std::string rasterData = LZW::Decompress(header, colorTable, &dataBlock);
+    std::string rasterData = LZW::Decompress(header, colorTable, data);
     return rasterData;
 }
 
 void Image::ReadDataSubBlocks(FILE* file)
 {
     uint8_t nextByte;
-    SubBlock* subBlock = new SubBlock;
-    subBlock->FollowSize = header->FollowSize;
-    subBlock->Data = (uint8_t*)malloc(sizeof(uint8_t) * subBlock->FollowSize);
-
-    fread(subBlock->Data, sizeof(uint8_t), subBlock->FollowSize, file);
-    dataBlock.push_back(subBlock);
+    int followSize;
+    followSize = header->FollowSize;
+    
+    while (followSize--) {
+        fread(&nextByte, 1, sizeof(uint8_t), file);
+        data.push_back(nextByte);
+    }
 
     fread(&nextByte, 1, sizeof(uint8_t), file);
 
     while (true) {
-        // Check for the end of the sub block
+        // Check for the end of sub block
         if (!nextByte)
             break;
-
-        subBlock = new SubBlock;
-        subBlock->FollowSize = nextByte;
-        subBlock->Data = (uint8_t*)malloc(sizeof(uint8_t) * subBlock->FollowSize);
-
-        fread(subBlock->Data, sizeof(uint8_t), subBlock->FollowSize, file);
-        dataBlock.push_back(subBlock);
+        
+        followSize = nextByte;
+        while (followSize--) {
+            fread(&nextByte, 1, sizeof(uint8_t), file);
+            data.push_back(nextByte);
+        }
 
         fread(&nextByte, 1, sizeof(uint8_t), file);
     }
 
-    for (int i = 0; i < dataBlock.size(); i++) {
-        for (int j = 0; j < dataBlock[i]->FollowSize; j++) {
-            fprintf(stdout, "%X ", dataBlock[i]->Data[j]);
-        }
+    // Print out the compressed stream of data 
+    for (uint8_t d : data) {
+        fprintf(stdout, "%X ", d);
     }
-
+    
     fprintf(stdout, "\n");
 }
 
@@ -209,10 +208,6 @@ void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, 
     fprintf(stdout, "Drawing Over Image\n");
     int offset;
     int currentChar = 0;
-
-    fprintf(stdout, "sizeof raster data: %d\n", rasterData->length());
-    fprintf(stdout, "sizeof pixel map: %ld\n", pixelMap->size());
-
     for (int row = 0; row < descriptor->Height; row++) {
         for (int col = 0; col < descriptor->Width; col++) {
             if (currentChar + 1 <= rasterData->size()) {
