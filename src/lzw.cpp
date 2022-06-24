@@ -12,16 +12,15 @@ std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<
     table = InitializeCodeTable(colorTable);
 
     int offset, newCode, oldCode, codesize, i;
-    offset = 0;
+    offset = 0, i = 0;
     codesize = imgHeader->LZWMinimum + 1;
-    i = 0;
 
     newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
     offset += codesize;
 
     // Check for clearcode
     if (newCode == 4) {
-        fprintf(stdout, "Encountered Clear Code...\n");
+        // fprintf(stdout, "Encountered Clear Code...\n");
         table = InitializeCodeTable(colorTable);
     }
 
@@ -29,14 +28,12 @@ std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<
     offset += codesize;
 
     charstream += table[newCode];
-    std::string s = table[newCode];
-    std::string c = "";
+    std::string s = table[newCode], c = "";
     c += s[0];
 
     oldCode = newCode;
 
     int count = table.size();
-    i = 0;
     while (i < (int)codestream.size() - 1) {
         if (offset + codesize > 8) {
             uint16_t tmp = (codestream[i + 1] << 8) | codestream[i];
@@ -60,7 +57,7 @@ std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<
         }
         
         if (table[newCode][0] == char(colorTable->size() + 1)) {
-            fprintf(stdout, "\nReinitializing Code table...\n");
+            // fprintf(stdout, "\nReinitializing Code table...\n");
             table = InitializeCodeTable(colorTable);
         }
 
@@ -81,16 +78,11 @@ std::unordered_map<int, std::string> LZW::InitializeCodeTable(std::vector<std::v
 {
     std::unordered_map<int, std::string> table;
     
-    int i = 0;
-    for (; i < (int)colorTable->size(); i++) { 
+    for (int i = 0; i < (int)colorTable->size() + 2; i++) { 
         std::string ch = ""; 
         ch += char(i); 
         table[i] = ch; 
     }
 
-    table[i] = char(i);
-    i++;
-    table[i] = char(i);
-    
     return table;
 }

@@ -9,6 +9,12 @@ Image::Image(FILE* fp, std::vector<std::vector<uint8_t>>* colortable)
 {
     this->file = fp;
     this->colorTable = colortable;
+
+    this->descriptor = new ImageDescriptor;
+    this->header = new ImageDataHeader;
+    this->extensions = new ImageExtensions;
+    // this->data = new std::vector<uint8_t>;
+    // this->data = new std::vector<uint8_t>;
 }
 
 std::string Image::LoadImageData()
@@ -65,7 +71,8 @@ void Image::ReadDataSubBlocks(FILE* file)
         
         fread(&nextByte, 1, sizeof(uint8_t), file);
     }
-    
+
+    // Print out the compressed stream of data 
     for (uint8_t d : data) {
         fprintf(stdout, "%X ", d);
     }
@@ -144,6 +151,7 @@ void Image::LoadExtension(ExtensionHeader* header)
 
         // Load Header
         extensions->Application = new ApplicationExtension;
+        // extensions->Application = (ApplicationExtension*)malloc(sizeof(ApplicationExtension));
         fread(&extensions->Application->Header, 1, sizeof(ExtensionHeader), file);
 
         // Load the Block Length

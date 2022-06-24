@@ -62,13 +62,13 @@ void GIF::ReadFileDataHeaders()
         fprintf(stdout, "Successfully Loaded GCT Descriptor\n");
 
         // Just for a sanity check print out each color in the GCT
-        fprintf(stdout, "\n------- Global Color Table -------\n");
-        for (std::vector<uint8_t> c : *colorTable) {
-            fprintf(stdout, "Red: %X\n", c[0]);
-            fprintf(stdout, "Green: %X\n", c[1]);
-            fprintf(stdout, "Blue: %X\n\n", c[2]);
-        }
-        fprintf(stdout, "----------------------------------\n");
+        // fprintf(stdout, "\n------- Global Color Table -------\n");
+        // for (std::vector<uint8_t> c : *colorTable) {
+        //     fprintf(stdout, "Red: %X\n", c[0]);
+        //     fprintf(stdout, "Green: %X\n", c[1]);
+        //     fprintf(stdout, "Blue: %X\n\n", c[2]);
+        // }
+        // fprintf(stdout, "----------------------------------\n");
     } else {
         fprintf(stdout, "Global Color Table Not Present\n");
     }
@@ -81,25 +81,20 @@ void GIF::GenerateFrameMap()
     
     // Initialize the Pixel Map
 
-    // Really stupid way to do this but eventually I will work out the issues
+    // The pixel map will be initialized as a single vector
+    // to mimic a two dimensional array, elements are accessed like so
+    //(char) pixel = PixelMap.at(ROW * width) + COL
     std::vector<char> pixelMap;
     pixelMap.resize(lsd->Width * lsd->Height);
 
-    // Because the pixel map is not initalized as a multi-dimensional array
-    // The way that values of rows and columns will be accessed is like this
-    // (char) pixel = PixelMap.at(Row * Width) + Col
-
+    // Initialize pixel map with blank characters
     for (int row = 0; row < lsd->Height; row++) {
         for (int col = 0; col < lsd->Width; col++) {
-            // By default just set the value at the char to ' '
             pixelMap.at((row * lsd->Width) + col) = ' ';
         }
     }
 
-    FILE* rasterOutput = fopen("redirects/raster_out", "w+");
-    char* newline = "\n";
-
-    // This while true should build up enough information for the frames of the gif
+    // Build up each frame for the gif
     while (true) {
         Image img = Image(file, colorTable);
 
@@ -110,15 +105,6 @@ void GIF::GenerateFrameMap()
         fprintf(stdout, "\nLoading Image Data...\n");
         std::string rasterData = img.LoadImageData();
 
-        // Because I have genuine brain worms I am going to print out the 
-        // raster data into a file and compare it to what it should be
-        for (char c : rasterData) {
-            char toWrite = char(c + 'A');
-            fwrite(&toWrite, 1, sizeof(char), rasterOutput);
-        }
-
-        fwrite(newline, 1, sizeof(char), rasterOutput);
-
         img.UpdatePixelMap(&pixelMap, &rasterData, lsd);
         frameMap.push_back(pixelMap);
         
@@ -127,20 +113,19 @@ void GIF::GenerateFrameMap()
         
         // Check if the file ended correctly (should end on 0x3B)
         if ((size_t)ftell(file) == filesize - 1) {
-            if (nextByte == TRAILER) {
+            if (nextByte == TRAILER)
                 fprintf(stdout, "File Ended Naturally\n");
-                break;
-            } else {
+            else
                 fprintf(stdout, "File ended unaturally with byte [%X]\n", nextByte);
-                break;
-            }
+
+            break;
         }
     }
 }
 
 void GIF::LoopFrames()
 {
-    fprintf(stdout, "Looping Frames\n");
+    // fprintf(stdout, "Looping Frames\n");
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
     // while (true) {
         for (std::vector<char> frame : frameMap) {
@@ -156,7 +141,7 @@ void GIF::LoopFrames()
                 }
 
                 if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                    fprintf(stdout, "%c - End of Information\n", c);
+                    // fprintf(stdout, "%c - End of Information\n", c);
                     break;
                 }
 
@@ -174,11 +159,11 @@ void GIF::LoopFrames()
                 averageBrightness = sum / color.size();
                 fprintf(stderr, "%s", ColorToUnicode(&color));
                 // fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
-                // fprintf(stderr, "%c", (int)averageBrightness ? 'A' : ' ');
 
                 col++;
                 sum = 0;
             }
+
             fprintf(stderr, "\n--------------------------------------------------\n");
             sleep(1);
         }

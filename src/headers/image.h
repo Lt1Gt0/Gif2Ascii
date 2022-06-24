@@ -25,7 +25,6 @@ class Image
         std::string LoadImageData();
         void ReadDataSubBlocks(FILE* file);
         void CheckExtensions();
-        void LoadExtension(ExtensionHeader* header);
 
         // Return the charstream given after decompression
         void UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, LogicalScreenDescriptor* lsd);
@@ -35,6 +34,8 @@ class Image
         void DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
         void RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap);
         void RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap);
+        
+        void LoadExtension(ExtensionHeader* header);
         
         // Debugging prints
         void PrintDescriptor();
