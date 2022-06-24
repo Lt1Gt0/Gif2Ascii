@@ -9,7 +9,7 @@
 
 int main()
 {
-    const char* filepath = "imgs/sample_2.gif";
+    const char* filepath = "imgs/grayscale.gif";
     
     FILE* fp = fopen(filepath, "rb");
     if (fp == NULL) {

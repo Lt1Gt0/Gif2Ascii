@@ -209,11 +209,17 @@ void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, 
     fprintf(stdout, "Drawing Over Image\n");
     int offset;
     int currentChar = 0;
+
+    fprintf(stdout, "sizeof raster data: %d\n", rasterData->length());
+    fprintf(stdout, "sizeof pixel map: %ld\n", pixelMap->size());
+
     for (int row = 0; row < descriptor->Height; row++) {
         for (int col = 0; col < descriptor->Width; col++) {
-            offset = ((row + descriptor->Top) * lsd->Width) + (col + descriptor->Left);
-            pixelMap->at(offset) = rasterData->at(currentChar);
-            currentChar++;
+            if (currentChar + 1 <= rasterData->size()) {
+                offset = ((row + descriptor->Top) * lsd->Width) + (col + descriptor->Left);
+                pixelMap->at(offset) = rasterData->at(currentChar);
+                currentChar++;
+            }
         }
     }
 }

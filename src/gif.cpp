@@ -162,8 +162,8 @@ void GIF::LoopFrames()
                 }
 
                 averageBrightness = sum / color.size();
-                fprintf(stderr, "%s", ColorToUnicode(&color));
-                // fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
+                // fprintf(stderr, "%s", ColorToUnicode(&color));
+                fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
 
                 col++;
                 sum = 0;
@@ -171,6 +171,7 @@ void GIF::LoopFrames()
 
             fprintf(stderr, "\n--------------------------------------------------\n");
             sleep(1);
+            // system("clear");
         }
     // }
 }
