@@ -56,6 +56,11 @@ struct ImageDataHeader {
     uint8_t FollowSize;
 } __attribute__((packed));
 
+struct SubBlock {
+    uint8_t     FollowSize;
+    uint8_t*    Data;
+};
+
 struct ExtensionHeader {
     uint8_t Introducer;
     uint8_t Label;

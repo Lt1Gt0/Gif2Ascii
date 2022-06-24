@@ -17,7 +17,7 @@ class Image
         ImageDataHeader* header;
         ImageExtensions* extensions;
         std::vector<std::vector<uint8_t>>* colorTable;
-        std::vector<uint8_t> data;
+        std::vector<SubBlock*> dataBlock;
         
     public:
         Image(FILE* fp, std::vector<std::vector<uint8_t>>* colortable);

@@ -13,8 +13,7 @@ Image::Image(FILE* fp, std::vector<std::vector<uint8_t>>* colortable)
     this->descriptor = new ImageDescriptor;
     this->header = new ImageDataHeader;
     this->extensions = new ImageExtensions;
-    // this->data = new std::vector<uint8_t>;
-    // this->data = new std::vector<uint8_t>;
+    this->dataBlock = std::vector<SubBlock*>();
 }
 
 std::string Image::LoadImageData()
@@ -38,45 +37,43 @@ std::string Image::LoadImageData()
     ReadDataSubBlocks(file);
 
     // Get the raster data from the image frame by decompressing the data block from the gif
-    std::string rasterData = LZW::Decompress(header, colorTable, data);
+    std::string rasterData = LZW::Decompress(header, colorTable, &dataBlock);
     return rasterData;
 }
 
 void Image::ReadDataSubBlocks(FILE* file)
 {
-    data.resize(header->FollowSize);
-
-    // Read the first sub block
-    for (int i = 0; i < (int)data.size(); i++) {
-        fread(&data[i], 1, sizeof(uint8_t), file);
-    }
-    
     uint8_t nextByte;
-    int dataSize;
+    SubBlock* subBlock = new SubBlock;
+    subBlock->FollowSize = header->FollowSize;
+    subBlock->Data = (uint8_t*)malloc(sizeof(uint8_t) * subBlock->FollowSize);
+
+    fread(subBlock->Data, sizeof(uint8_t), subBlock->FollowSize, file);
+    dataBlock.push_back(subBlock);
+
     fread(&nextByte, 1, sizeof(uint8_t), file);
 
     while (true) {
-        // Check for the end of sub block
+        // Check for the end of the sub block
         if (!nextByte)
             break;
-        
-        // Resize the vector to account for the new block to be added
-        dataSize = (int)data.size();
-        data.resize(dataSize + (int)nextByte);
 
-        // Read the next (nextByte) bytes into the vector
-        for (int i = 0; i < nextByte; i++) {
-            fread(&data[i + dataSize], 1, sizeof(uint8_t), file);
-        }
-        
+        subBlock = new SubBlock;
+        subBlock->FollowSize = nextByte;
+        subBlock->Data = (uint8_t*)malloc(sizeof(uint8_t) * subBlock->FollowSize);
+
+        fread(subBlock->Data, sizeof(uint8_t), subBlock->FollowSize, file);
+        dataBlock.push_back(subBlock);
+
         fread(&nextByte, 1, sizeof(uint8_t), file);
     }
 
-    // Print out the compressed stream of data 
-    for (uint8_t d : data) {
-        fprintf(stdout, "%X ", d);
+    for (int i = 0; i < dataBlock.size(); i++) {
+        for (int j = 0; j < dataBlock[i]->FollowSize; j++) {
+            fprintf(stdout, "%X ", dataBlock[i]->Data[j]);
+        }
     }
-    
+
     fprintf(stdout, "\n");
 }
 

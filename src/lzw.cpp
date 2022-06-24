@@ -3,9 +3,10 @@
 #include <string>
 #include <math.h>
 
-std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<uint8_t>>* colorTable, std::vector<uint8_t> codestream)
+std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<uint8_t>>* colorTable, std::vector<SubBlock*>* codestreamBlocks)
 {
     fprintf(stdout, "Decompressing stream...\n");
+    std::vector<uint8_t> codestream = UnpackSubBlocks(codestreamBlocks);
 
     std::unordered_map<int, std::string> table;
     std::string charstream = ""; 
@@ -71,6 +72,7 @@ std::string LZW::Decompress(ImageDataHeader* imgHeader, std::vector<std::vector<
             codesize++;
     }
 
+    // printf("%s\n", charstream);
     return charstream;
 }
 
@@ -85,4 +87,17 @@ std::unordered_map<int, std::string> LZW::InitializeCodeTable(std::vector<std::v
     }
 
     return table;
+}
+
+std::vector<uint8_t> LZW::UnpackSubBlocks(std::vector<SubBlock*>* SubBlocks)
+{
+    std::vector<uint8_t> unpacked = std::vector<uint8_t>();
+
+    for (SubBlock* block : *SubBlocks) {
+        for (int i = 0; i < block->FollowSize; i++) {
+            unpacked.push_back(block->Data[i]);
+        }
+    }    
+
+    return unpacked;
 }

@@ -28,11 +28,14 @@ GIF::GIF(FILE* fp)
     } else {
         fprintf(stdout, "Valid GIF Header format\n");
     }
+
+    this->lsd = new LogicalScreenDescriptor;
+    this->imageData = std::vector<Image>();
+    this->frameMap = std::vector<std::vector<char>>();
 }
 
 void GIF::ReadFileDataHeaders()
 {
-    lsd = new LogicalScreenDescriptor;
     fread(lsd, 1, sizeof(LogicalScreenDescriptor), file);
 
     // Check to see if the GCT flag is set
@@ -104,6 +107,8 @@ void GIF::GenerateFrameMap()
         // Load the decompressed image data and draw the frame
         fprintf(stdout, "\nLoading Image Data...\n");
         std::string rasterData = img.LoadImageData();
+
+        printf("%d\n", rasterData.size());
 
         img.UpdatePixelMap(&pixelMap, &rasterData, lsd);
         frameMap.push_back(pixelMap);
