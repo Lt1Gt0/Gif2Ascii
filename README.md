@@ -20,10 +20,8 @@ __I did not use any external libraries for this project, instead I wrote my own 
 To run the program
 
 ```bash
-./bin/gif2ascii
+./bin/gif2ascii <filepath>
 ```
-
-(Currently the file that will be converted is done in the main method, this will be easy to turn into a command line argument in future versions)
 
 ## Milestones before this repos creation
 

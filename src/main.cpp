@@ -27,9 +27,8 @@ int main(int argc, char** argv)
     Debug::Print("Reading File Information Data...");
     
     gif->ReadFileDataHeaders();
-    // gif.PrintHeaderInfo(); // Debug
     gif->GenerateFrameMap();
-    // gif->LoopFrames();
+    gif->LoopFrames();
 
     return 0;
 }

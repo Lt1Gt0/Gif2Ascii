@@ -36,7 +36,7 @@ GIF::GIF(FILE* fp)
 
 void GIF::ReadFileDataHeaders()
 {
-    fread(lsd, 1, sizeof(LogicalScreenDescriptor), file);
+    fread(lsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), file);
 
     // Check to see if the GCT flag is set
     if (lsd->Packed >> LSDMask::GlobalColorTable) {
@@ -54,8 +54,8 @@ void GIF::ReadFileDataHeaders()
         std::vector<uint8_t> color;
         color.resize(3);
         for (int i = 0; i < gctd->NumberOfColors; i++) {
-            for (int i = 0; i < (int)color.size(); i++) {
-                fread(&color[i], 1, sizeof(char), file);
+            for (int j = 0; j < (int)color.size(); j++) {
+                fread(&color[j], 1, sizeof(char), file);
             }
 
             colorTable->push_back(color);
@@ -65,16 +65,18 @@ void GIF::ReadFileDataHeaders()
         Debug::Print("Successfully Loaded GCT Descriptor");
 
         // Just for a sanity check print out each color in the GCT
-        // fprintf(stdout, "\n------- Global Color Table -------\n");
-        // for (std::vector<uint8_t> c : *colorTable) {
-        //     Debug::Print("Red: %X", c[0]);
-        //     Debug::Print("Green: %X", c[1]);
-        //     Debug::Print("Blue: %X\n", c[2]);
-        // }
-        // Debug::Print("----------------------------------");
+        Debug::Print("\n------- Global Color Table -------");
+        for (std::vector<uint8_t> c : *colorTable) {
+            Debug::Print("Red: %X", c[0]);
+            Debug::Print("Green: %X", c[1]);
+            Debug::Print("Blue: %X\n", c[2]);
+        }
+        Debug::Print("----------------------------------");
     } else {
         Debug::Print("Global Color Table Not Present");
     }
+
+    PrintHeaderInfo();
 }
 
 void GIF::GenerateFrameMap()
@@ -110,7 +112,8 @@ void GIF::GenerateFrameMap()
 
         img.UpdatePixelMap(&pixelMap, &rasterData, lsd);
         frameMap.push_back(pixelMap);
-        
+        imageData.push_back(img);
+
         fread(&nextByte, 1, sizeof(uint8_t), file);
         fseek(file, -1, SEEK_CUR);
         
@@ -121,6 +124,8 @@ void GIF::GenerateFrameMap()
             else
                 Debug::Print("File ended unaturally with byte [%X]", nextByte);
 
+            // There is nothing left to get from the file so close it
+            fclose(this->file);
             break;
         }
     }
@@ -132,6 +137,7 @@ void GIF::LoopFrames()
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
     system("clear");
     while (true) {
+        int frameIdx = 0;
         for (std::vector<char> frame : frameMap) {
             
             // Initialize variables for Image Display
@@ -145,7 +151,7 @@ void GIF::LoopFrames()
                 }
 
                 if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                    // fprintf(stdout, "%c - End of Information\n", c);
+                    Debug::Print("%c - End of Information", c);
                     break;
                 }
 
@@ -153,12 +159,11 @@ void GIF::LoopFrames()
                 if ((int)c < 0) 
                     break;
 
-                // fprintf(stdout, "c -> int: %d\n", (int)c);
                 std::vector<uint8_t> color = colorTable->at((int)c);
 
                 // Get the sum of each color brightness at the current code
-                for(uint8_t c : color) {
-                    sum += (int)c;
+                for(uint8_t brightness : color) {
+                    sum += brightness;
                 }
 
                 averageBrightness = sum / color.size();
@@ -169,9 +174,9 @@ void GIF::LoopFrames()
                 sum = 0;
             }
 
-            // fprintf(stderr, "\n--------------------------------------------------\n");
-            // sleep(1);
-            usleep(60000);
+            // Debug::Print("\n--------------------------------------------------");
+            sleep((double) imageData[frameIdx].extensions->GraphicsControl->DelayTime / 50);
+            frameIdx++;
             system("clear");
         }
     }

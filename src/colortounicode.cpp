@@ -33,8 +33,8 @@ char* ColorToUnicode(std::vector<uint8_t>* color)
         projectedChar = (char*)"~"; // PlaceHolder
         // projectedChar = (char*)u8"\u0DB0";
     } else if (!color->at(1) && !color->at(1) && !color->at(2)) { // Check Black
-        // projectedChar = (char*)"="; // PlaceHolder
-        projectedChar = (char*)u8"\u0DB0";
+        projectedChar = (char*)"="; // PlaceHolder
+        // projectedChar = (char*)u8"\u0DB0";
         // projectedChar = (char*)u8"\u0D9E";
     } else {
         projectedChar = (char*)" ";

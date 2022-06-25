@@ -138,7 +138,7 @@ void Image::LoadExtension(ExtensionHeader* header)
 
         // Read a store bytes until 0x00 is hit
         // Just as a reminder, I am discarding the comment information for now, implement later if needed
-        uint8_t nextByte;
+        uint8_t nextByte = NULL;
         for (int i = 0; nextByte != 0x00; i++) {
             fread(&nextByte, 1, sizeof(uint8_t), file);
         }
