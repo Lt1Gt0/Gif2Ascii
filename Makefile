@@ -1,14 +1,15 @@
 #File Directory things (might be overkill idk yet)
 INCLUDE = -I$(SRC_DIR)/headers
+NCURSES = -lncurses
 BUILD_DIR = bin
 SRC_DIR = src
 OBJ_DIR = obj
+LOG_DIR = logs
 REDIRECT_DIR = redirects
 
 #Compiler and linker things
 CC = g++
 CCFLAGS = -g -Wall -Wextra
-CCFLAGS += -Wno-write-strings # figure out how to make a make recipe for suppressed warnings rather than forcing it
 LD = ld
 LDFLAGS = 
 
@@ -21,6 +22,7 @@ OBJ = $(addprefix $(BUILD_DIR)/, $(OBJNAME))
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
 all: $(OBJ) 
+	@mkdir -p $(LOG_DIR)
 	@mkdir -p $(@D)
 	@mkdir -p $(REDIRECT_DIR)
 	@echo ---- Generating $^ ---
@@ -28,7 +30,7 @@ all: $(OBJ)
 $(OBJ): $(OBJS)
 	@echo ---- Linking $^ ----
 	@mkdir -p $(@D)
-	$(CC) $^ -o $@
+	$(CC) $(NCURSES) $^ -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo ---- Compiling $^ ----
@@ -39,3 +41,4 @@ clean:
 	rm -rf $(BUILD_DIR)/
 	rm -rf $(OBJ_DIR)/
 	rm -rf $(REDIRECT_DIR)/
+	rm -rf $(LOG_DIR)/

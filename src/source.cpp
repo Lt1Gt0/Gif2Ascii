@@ -1,6 +1,6 @@
 #include "gif.h"
 #include "errorhandler.h"
-#include "Debug/debug.h"
+#include "Debug/logger.h"
 
 /*
     The current version of this converter only works on gif89a not gif87a
@@ -11,24 +11,27 @@
 
 int main(int argc, char** argv)
 {
-    if (argc < 2) {
+    if (argc < 2)
         ErrorHandler::err_n_die("Usage: %s <filepath>", argv[0]);
-    }
+
+    LOG_INIT("logs/", "info")
+    LOG_INFO << "Bruh\n";
+    
     const char* filepath = argv[1];
     
     FILE* fp = fopen(filepath, "rb");
-    if (fp == NULL) {
+    if (fp == NULL)
         ErrorHandler::err_n_die("Error opening file [%s]", filepath);
-    } else {
-        Debug::Print("Successfully opened [%s]", filepath);
-    }
+    else
+        LOG_INFO << "Successfully opened [" << filepath << "]\n";
 
     GIF* gif = new GIF(fp);
-    Debug::Print("Reading File Information Data...");
+    LOG_INFO << "Reading information from file\n";
     
-    gif->ReadFileDataHeaders();
+    gif->ReadFileHeaders();
     gif->GenerateFrameMap();
     gif->LoopFrames();
 
+    logger.Close();
     return 0;
 }

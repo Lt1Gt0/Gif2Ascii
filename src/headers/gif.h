@@ -22,7 +22,7 @@ class GIF
 
     public:
         GIF(FILE* fp);
-        void ReadFileDataHeaders();
+        void ReadFileHeaders();
         void GenerateFrameMap();
         void LoopFrames();
 

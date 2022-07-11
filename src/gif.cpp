@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <unordered_map>
+#include <ncurses.h>
+#include <chrono>
+#include <thread>
 
 GIF::GIF(FILE* fp)
 {
@@ -34,7 +37,7 @@ GIF::GIF(FILE* fp)
     this->frameMap = std::vector<std::vector<char>>();
 }
 
-void GIF::ReadFileDataHeaders()
+void GIF::ReadFileHeaders()
 {
     fread(lsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), file);
 
@@ -71,6 +74,7 @@ void GIF::ReadFileDataHeaders()
             Debug::Print("Green: %X", c[1]);
             Debug::Print("Blue: %X\n", c[2]);
         }
+
         Debug::Print("----------------------------------");
     } else {
         Debug::Print("Global Color Table Not Present");
@@ -88,7 +92,7 @@ void GIF::GenerateFrameMap()
 
     // The pixel map will be initialized as a single vector
     // to mimic a two dimensional array, elements are accessed like so
-    //(char) pixel = PixelMap.at(ROW * width) + COL
+    // (char) pixel = PixelMap.at(ROW * width) + COL
     std::vector<char> pixelMap;
     pixelMap.resize(lsd->Width * lsd->Height);
 
@@ -133,9 +137,9 @@ void GIF::GenerateFrameMap()
 
 void GIF::LoopFrames()
 {
-    // fprintf(stdout, "Looping Frames\n");
+    initscr();
+    clear();
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(colorTable);
-    system("clear");
     while (true) {
         int frameIdx = 0;
         for (std::vector<char> frame : frameMap) {
@@ -147,11 +151,11 @@ void GIF::LoopFrames()
             for (char c : frame) {
                 if (col >= lsd->Width) {
                     col = 0;
-                    fprintf(stderr, "\n");
+                    printw("\n");
                 }
 
                 if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                    Debug::Print("%c - End of Information", c);
+                    // Debug::Print("%c - End of Information", c);
                     break;
                 }
 
@@ -167,19 +171,19 @@ void GIF::LoopFrames()
                 }
 
                 averageBrightness = sum / color.size();
-                fprintf(stderr, "%s", ColorToUnicode(&color));
+                addstr(ColorToUnicode(&color));
                 // fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
-
                 col++;
                 sum = 0;
             }
 
-            // Debug::Print("\n--------------------------------------------------");
-            sleep((double) imageData[frameIdx].extensions->GraphicsControl->DelayTime / 50);
+            std::this_thread::sleep_for(std::chrono::milliseconds(imageData[frameIdx].extensions->GraphicsControl->DelayTime * 10));
             frameIdx++;
-            system("clear");
+            refresh();
+            clear();
         }
     }
+    endwin();
 }
 
 bool GIF::ValidHeader()

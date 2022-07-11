@@ -1,0 +1,15 @@
+# Dont push unnecessary logs
+logs/
+
+# incase I dont clean objects before pushing
+obj/
+bin/
+*.o
+*.tmp
+ 
+# More folders that store testing files that dont need to be pushed
+imgs/
+misc/
+redirects/
+
+.vscode/
