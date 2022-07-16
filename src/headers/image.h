@@ -12,24 +12,26 @@
 class Image 
 {            
     public:
-        FILE* file;
-        ImageDescriptor* descriptor;
-        ImageDataHeader* header;
-        ImageExtensions* extensions;
-        std::vector<std::vector<uint8_t>>* colorTable;
-        std::vector<uint8_t> data;
+        ImageDescriptor* mDescriptor;
+        ImageDataHeader* mHeader;
+        ImageExtensions* mExtensions;
+        Color* mColorTable;
+        std::vector<uint8_t> mData;
         
     public:
-        Image(FILE* fp, std::vector<std::vector<uint8_t>>* colortable);
+        Image(FILE* _fp, Color* _colortable, uint8_t _colorTableSize);
         
         std::string LoadImageData();
-        void ReadDataSubBlocks(FILE* file);
+        void ReadDataSubBlocks();
         void CheckExtensions();
 
         // Return the charstream given after decompression
         void UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, LogicalScreenDescriptor* lsd);
 
     private:
+        FILE* mFile;
+        uint8_t mColorTableSize;
+
         // Different Drawing behaviors based off Disposal Methods
         void DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
         void RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap);

@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include "common.h"
 
 #define EXTENSION_INTRODUCER        0x21
 #define EXTENSION_TERMINATOR        0x00
@@ -45,16 +46,16 @@ struct ImageDescriptor {
         6-8 : Local Color Table Size
     */
     uint8_t     Packed;
-} __attribute__((packed));
+} PACKED;
 
 struct LocalColorTable {
     // TODO
-} __attribute__((packed));
+} PACKED;
 
 struct ImageDataHeader {
     uint8_t LZWMinimum;
     uint8_t FollowSize;
-} __attribute__((packed));
+} PACKED;
 
 struct SubBlock {
     uint8_t     FollowSize;
@@ -64,7 +65,7 @@ struct SubBlock {
 struct ExtensionHeader {
     uint8_t Introducer;
     uint8_t Label;
-} __attribute__((packed));
+} PACKED;
 
 struct GraphicsControlExtension {
     ExtensionHeader Header;
@@ -81,7 +82,7 @@ struct GraphicsControlExtension {
     uint16_t        DelayTime;
     uint8_t         TransparentColorIndex;
     uint8_t         BlockTerminator; // Always 0x00
-} __attribute__((packed));
+} PACKED;
 
 struct PlainTextExtension {
     ExtensionHeader Header;

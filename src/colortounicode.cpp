@@ -18,21 +18,21 @@ char* BrightnessToUnicode(double brightness)
     return projectedChar;
 }
 
-char* ColorToUnicode(std::vector<uint8_t>* color)
+char* ColorToUnicode(const Color& color)
 {
     char* projectedChar;
 
-    if (color->at(0) && !color->at(1) && !color->at(2)) { // Check Red
+    if (color.Red && !color.Green && !color.Blue) { // Check Red
         // projectedChar = (char*)u8"\u0D9E";
         projectedChar = (char*)"-"; // PlaceHolder
         // projectedChar = (char*)" ";
-    } else if (color->at(1) && !color->at(0) && !color->at(2)) { // Check Green
+    } else if (!color.Red && color.Green && !color.Blue) { // Check Green
         projectedChar = (char*)"|"; // PlaceHolder
         // projectedChar = (char*)u8"\u0DAC";
-    } else if (color->at(0) && color->at(1) && !color->at(2)) { // Check Yellow
+    } else if (color.Red && color.Green && !color.Blue) { // Check Yellow
         projectedChar = (char*)"~"; // PlaceHolder
         // projectedChar = (char*)u8"\u0DB0";
-    } else if (!color->at(1) && !color->at(1) && !color->at(2)) { // Check Black
+    } else if (!color.Red && !color.Green && !color.Blue) { // Check Black
         projectedChar = (char*)"="; // PlaceHolder
         // projectedChar = (char*)u8"\u0DB0";
         // projectedChar = (char*)u8"\u0D9E";

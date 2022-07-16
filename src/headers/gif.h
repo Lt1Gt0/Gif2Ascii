@@ -10,27 +10,30 @@
 class GIF 
 {
     public:
-        FILE* file;
-        size_t filesize;
+        FILE* mFile;
         
-        GifHeader* header;
-        LogicalScreenDescriptor* lsd;
-        GlobalColorTableDescriptor* gctd;
-        std::vector<Image> imageData;
-        std::vector<std::vector<uint8_t>>* colorTable; // If the flag is present then the gct will be filled
-        std::vector<std::vector<char>> frameMap;
+        GifHeader* mHeader;
+        LogicalScreenDescriptor* mLsd;
+        GlobalColorTableDescriptor* mGctd;
+        std::vector<Image> mImageData;
+        Color* mColorTable; // If the flag is present then the gct will be filled
+        std::vector<std::vector<char>> mFrameMap;
 
     public:
-        GIF(FILE* fp);
-        void ReadFileHeaders();
+        GIF(FILE* _fp);
+        void ReadFileDataHeaders();
         void GenerateFrameMap();
         void LoopFrames();
 
     private:
+        size_t mFilesize;
+        
+        void LoadHeader();
         bool ValidHeader();
         
-        // Debug Print
+        // Debug Prints
         void PrintHeaderInfo();
+        void PrintColorTable();
 };
 
 #endif // _GIF_H

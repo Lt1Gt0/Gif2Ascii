@@ -6,17 +6,16 @@
 
 namespace LZW
 {
-    string Decompress(ImageDataHeader* imgHeader, vector<vector<uint8_t>>* colorTable, vector<uint8_t> codestream)
+    string Decompress(ImageDataHeader* imgHeader, uint8_t colorTableSize, vector<uint8_t> codestream)
     {
-        if (codestream.size() <= 0) {
+        if (codestream.size() <= 0)
             return "";
-        }
 
         Debug::Print("Decompressing stream...");
 
         unordered_map<int, string> table;
         string charstream = ""; 
-        table = InitializeCodeTable(colorTable);
+        table = InitializeCodeTable(colorTableSize);
 
         int offset, newCode, oldCode, codesize, i;
         offset = 0, i = 0;
@@ -28,7 +27,7 @@ namespace LZW
         // Check for clearcode
         if (newCode == 4) {
             Debug::Print("Encountered Clear Code...");
-            table = InitializeCodeTable(colorTable);
+            table = InitializeCodeTable(colorTableSize);
         }
 
         newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
@@ -63,9 +62,9 @@ namespace LZW
                 c = table[newCode][0];
             }
 
-            if (table[newCode][0] == char(colorTable->size() + 1)) {
+            if (table[newCode][0] == char(colorTableSize + 1)) {
                 Debug::Print("\nReinitializing Code table...");
-                table = InitializeCodeTable(colorTable);
+                table = InitializeCodeTable(colorTableSize);
             }
 
             table[count] = table[oldCode] + c;
@@ -82,11 +81,11 @@ namespace LZW
         return charstream;
     }
 
-    unordered_map<int, string> InitializeCodeTable(vector<vector<uint8_t>>* colorTable)
+    unordered_map<int, string> InitializeCodeTable(uint8_t colorTableSize)
     {
         unordered_map<int, string> table;
 
-        for (int i = 0; i < (int)colorTable->size() + 2; i++) { 
+        for (int i = 0; i < colorTableSize + 2; i++) { 
             string ch = ""; 
             ch += char(i); 
             table[i] = ch; 

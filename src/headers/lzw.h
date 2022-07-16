@@ -8,19 +8,20 @@
 #include <string>
 
 #include "image.h"
+#include "gifmeta.h"
 
 namespace LZW 
 {
     using namespace std;
-    string Decompress(ImageDataHeader* imgHeader, vector<vector<uint8_t>>* colorTable, vector<uint8_t> codestream);
+    string Decompress(ImageDataHeader* imgHeader, uint8_t colorTableSize, vector<uint8_t> codestream);
 
     /**
      * Initialize a code table based off the size of a given color table
      * 
-     * @param colorTable 
+     * @param colorTableSize
      * @return std::unordered_map<int, std::string> Code Table
      */
-    unordered_map<int, string> InitializeCodeTable(vector<vector<uint8_t>>* colorTable);
+    unordered_map<int, string> InitializeCodeTable(uint8_t colorTableSize);
 }
 
 #endif // _LZW_H
