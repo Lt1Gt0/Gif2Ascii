@@ -12,6 +12,8 @@
 // U+0E8F ຏ
 // U+0EA5 ລ
 
+/* TODO */
+
 char* BrightnessToUnicode(double avgBrightness);
 char* ColorToUnicode(const Color& color);
 

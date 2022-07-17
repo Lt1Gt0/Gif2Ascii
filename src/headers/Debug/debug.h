@@ -4,6 +4,8 @@
 
 #include <stdarg.h>
 
+// Not really the best debug methods for printing
+// might rework later
 namespace Debug
 {
     void Print(const char* fmt, ...);

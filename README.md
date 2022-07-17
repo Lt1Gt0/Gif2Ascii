@@ -3,19 +3,25 @@
 - [Gif2Ascii](#gif2ascii)
   - [About](#about)
   - [Build info](#build-info)
-  - [Milestones before this repos creation](#milestones-before-this-repos-creation)
+  - [TODO](#todo)
 
 ## About
 
 Convert gif data into ascii characters
 
-This project has been moved from one of my private repositories where I throw random things into. I decided to make a seperate respository for this project instead of cramming it in a crowded repo. The commit log will be a bit jumpy because for the most part the early commits will only contain the milestones I hit with this project up until the point where I got a working proof of concept which is my latest commit as of this project
+__I did not use any external libraries for this project. I decided it would be fun to write my own implementation so in its current state it is very buggy__
 
-The whole concept behind this project was to turn the raster data stored inside of a gif into an ascii representation shown in a terminal window. (An idea I want to use for [sustext](https://github.com/Lt1Gt0/sustext)) in the future
-
-__I did not use any external libraries for this project, instead I wrote my own implementation so in its current state it is very buggy__
+The whole concept behind this project was to turn the raster data stored inside of a gif into an ascii representation shown in a terminal window. (An idea I want to use for [sustext](https://github.com/Lt1Gt0/sustext) in the future)
 
 ## Build info
+
+To build the program
+
+```bash
+make
+```
+
+(I do plan on adding different build flags for debugging purposes)
 
 To run the program
 
@@ -23,13 +29,17 @@ To run the program
 ./bin/gif2ascii <filepath>
 ```
 
-## Milestones before this repos creation
+## TODO
+  __HIGH PRIORITY__
+  - [ ] Support gif87a format
+  - [ ] Comment extensions
+  - [ ] Frame display timing (currently set on a 1 second interval per frame)
+  - [ ] Correct ascii mappings according to colors
 
-(read [About](#About) if confused)
-
-- Headers for GIF format
-- Read All GIF File contents
-- Working LZW (There were a lot of sad attempts at LZW between the previous commit and this one)
-- Image Mapping
-- Revamped LZW for 256 colors
-- Working Proof on concept (Most recent progress)
+  __MEDIUM PRIORITY__
+  - [ ] Dump gif information to seperate file for viewing (maybe)
+  - [ ] Image scaling (fit size of terminal window as best as possible if needed)
+  - [ ] Change display method to a web browser (could be set as a flag passed in upon unning the program)
+  
+  __LOW PRIORITY__
+  - [ ] Possible support for different unicode characters (could be set as a flag passed in upon running the program)

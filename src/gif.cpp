@@ -20,19 +20,27 @@ GIF::GIF(FILE* _fp)
     this->mFilesize = ftell(this->mFile);
     rewind(this->mFile);
     Debug::Print("Total File Size: %.2ldkB", (this->mFilesize / 1024));
-    
-    LoadHeader();
-    
+   
     // Initialize class members
+    this->mHeader = new GifHeader;
     this->mLsd = new LogicalScreenDescriptor;
     this->mImageData = std::vector<Image>();
     this->mFrameMap = std::vector<std::vector<char>>();
+    this->mHeaderInitialized = false; 
+    this->mFrameMapInitialized = false;
+    this->mLSDInitialized = false;
+}
+
+void GIF::Read()
+{
+    LoadHeader();
+    LoadLSD();
+    GenerateFrameMap();
 }
 
 void GIF::LoadHeader()
 {
     // Load the GIF header into memory
-    this->mHeader = new GifHeader; 
     fread(this->mHeader, sizeof(uint8_t), sizeof(GifHeader), this->mFile);
 
     // Check for a valid GIF Header
@@ -40,10 +48,17 @@ void GIF::LoadHeader()
         ErrorHandler::err_n_die("Invalid GIF Format Header");
     else
         Debug::Print("Valid GIF Header format");
+
+    this->mHeaderInitialized = true;
 }
 
-void GIF::ReadFileDataHeaders()
+void GIF::LoadLSD()
 {
+    if (!this->mHeaderInitialized) {
+        Debug::PrintErr("Attempting to initialize Logical Screen Descriptor before header...\nReturning");
+        return;
+    }
+
     //Load the LSD From GIF File 
     fread(this->mLsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), this->mFile);
 
@@ -72,10 +87,21 @@ void GIF::ReadFileDataHeaders()
     }
 
     PrintHeaderInfo();
+    this->mLSDInitialized = true;
 }
 
 void GIF::GenerateFrameMap()
 {
+    if (!this->mHeaderInitialized) {
+        Debug::PrintErr("Attempting to initialize frame map before header...\nReturning");
+        return;
+    }
+    
+    if (!this->mLSDInitialized) {
+        Debug::PrintErr("Attempting to initialize frame map before Logical Screen Descriptor...\nReturning");
+        return;
+    }
+
     Debug::Print("Generating Frame Map");
     uint8_t nextByte;
     
@@ -122,21 +148,29 @@ void GIF::GenerateFrameMap()
             break;
         }
     }
+    
+    this->mFrameMapInitialized = true;
 }
 
 void GIF::LoopFrames()
 {
-    // fprintf(stdout, "Looping Frames\n");
+    // This is where things get a bit more confusing and will most likely be completely
+    // reworked to make more sense
+
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mGctd->NumberOfColors);
     system("clear");
+
     while (true) {
         int frameIdx = 0;
+
+        // Go through each frame in the frame map
         for (std::vector<char> frame : this->mFrameMap) {
             
             // Initialize variables for Image Display
             int col = 0, sum = 0;
             double averageBrightness;
 
+            // Go through each code in the frame
             for (char c : frame) {
                 if (col >= this->mLsd->Width) {
                     col = 0;
@@ -169,7 +203,7 @@ void GIF::LoopFrames()
 
             // Debug::Print("\n--------------------------------------------------");
             //sleep((double) this->mImageData[frameIdx].extensions->GraphicsControl->DelayTime / 1000);
-            sleep(1);
+            sleep(1); // TODO
             frameIdx++;
             system("clear");
         }

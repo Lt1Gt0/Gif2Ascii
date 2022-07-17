@@ -26,8 +26,7 @@ int main(int argc, char** argv)
     GIF* gif = new GIF(fp);
     Debug::Print("Reading File Information Data...");
     
-    gif->ReadFileDataHeaders();
-    gif->GenerateFrameMap();
+    gif->Read();
     gif->LoopFrames();
 
     return 0;

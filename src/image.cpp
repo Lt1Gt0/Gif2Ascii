@@ -23,7 +23,6 @@ Image::Image(FILE* _fp, Color* _colortable, uint8_t _colorTableSize)
 std::string Image::LoadImageData()
 {
     // Load the Image Descriptor into memory
-    this->mDescriptor = new ImageDescriptor;
     fread(this->mDescriptor, sizeof(uint8_t), sizeof(ImageDescriptor), this->mFile);
 
     // Load the Local Color Table if it is set 
@@ -35,7 +34,6 @@ std::string Image::LoadImageData()
         Debug::Print("No Local Color Table Flag Set");
 
     // Load the image header into memory
-    this->mHeader = new ImageDataHeader;
     fread(this->mHeader, sizeof(uint8_t), sizeof(ImageDataHeader), this->mFile); // Only read 2 bytes of file steam for LZW min and Follow Size 
     ReadDataSubBlocks();
 
@@ -132,7 +130,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             mExtensions->GraphicsControl = new GraphicsControlExtension;
             fread(mExtensions->GraphicsControl, sizeof(uint8_t), sizeof(GraphicsControlExtension), this->mFile);
         } break;
-        case ExtensionTypes::Comment:
+        case ExtensionTypes::Comment: // TODO
         {
             Debug::Print("Loding Comment Extension");
 
@@ -155,7 +153,6 @@ void Image::LoadExtension(ExtensionHeader* header)
 
             // Load Header
             mExtensions->Application = new ApplicationExtension;
-            // extensions->Application = (ApplicationExtension*)malloc(sizeof(ApplicationExtension));
             fread(&mExtensions->Application->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
             // Load the Block Length

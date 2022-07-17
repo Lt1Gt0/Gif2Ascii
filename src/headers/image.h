@@ -31,6 +31,8 @@ class Image
     private:
         FILE* mFile;
         uint8_t mColorTableSize;
+    
+    private:
 
         // Different Drawing behaviors based off Disposal Methods
         void DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
