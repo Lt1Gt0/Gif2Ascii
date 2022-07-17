@@ -14,7 +14,7 @@
 struct GifHeader {
     char Signature[3];
     char Version[3];
-} PACKED;
+};
 
 enum LSDMask {
     GlobalColorTable    = 7,

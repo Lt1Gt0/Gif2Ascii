@@ -33,7 +33,7 @@ void GIF::LoadHeader()
 {
     // Load the GIF header into memory
     this->mHeader = new GifHeader; 
-    fread(this->mHeader, 1, sizeof(GifHeader), this->mFile);
+    fread(this->mHeader, sizeof(uint8_t), sizeof(GifHeader), this->mFile);
 
     // Check for a valid GIF Header
     if (!ValidHeader())
@@ -79,11 +79,9 @@ void GIF::GenerateFrameMap()
     Debug::Print("Generating Frame Map");
     uint8_t nextByte;
     
-    // Initialize the Pixel Map
-
     // The pixel map will be initialized as a single vector
     // to mimic a two dimensional array, elements are accessed like so
-    //(char) pixel = PixelMap.at(ROW * width) + COL
+    // (char) pixel = PixelMap.at(ROW * width) + COL
     std::vector<char> pixelMap;
     pixelMap.resize(this->mLsd->Width * this->mLsd->Height);
 
@@ -109,7 +107,7 @@ void GIF::GenerateFrameMap()
         this->mFrameMap.push_back(pixelMap);
         this->mImageData.push_back(img);
 
-        fread(&nextByte, 1, sizeof(uint8_t), this->mFile);
+        fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
         fseek(this->mFile, -1, SEEK_CUR);
         
         // Check if the file ended correctly (should end on 0x3B)

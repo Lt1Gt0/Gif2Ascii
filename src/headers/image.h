@@ -43,7 +43,6 @@ class Image
         void PrintDescriptor();
         void PrintData();
         void PrintSubBlockData(std::vector<uint8_t>* block);
-
 };
 
 #endif // _GIF_IMAGE_DATA_H

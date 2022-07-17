@@ -1,5 +1,6 @@
 #include "image.h"
 
+#include <cstdint>
 #include <stdio.h>
 #include <unordered_map>
 #include "lzw.h"
@@ -23,7 +24,7 @@ std::string Image::LoadImageData()
 {
     // Load the Image Descriptor into memory
     this->mDescriptor = new ImageDescriptor;
-    fread(this->mDescriptor, 1, sizeof(ImageDescriptor), this->mFile);
+    fread(this->mDescriptor, sizeof(uint8_t), sizeof(ImageDescriptor), this->mFile);
 
     // Load the Local Color Table if it is set 
     // The current GIF I am trying to target does not have a need for a LCT so I am just
@@ -35,7 +36,7 @@ std::string Image::LoadImageData()
 
     // Load the image header into memory
     this->mHeader = new ImageDataHeader;
-    fread(this->mHeader, 1, sizeof(ImageDataHeader), this->mFile); // Only read 2 bytes of file steam for LZW min and Follow Size 
+    fread(this->mHeader, sizeof(uint8_t), sizeof(ImageDataHeader), this->mFile); // Only read 2 bytes of file steam for LZW min and Follow Size 
     ReadDataSubBlocks();
 
     // Get the raster data from the image frame by decompressing the data block from the gif
@@ -50,11 +51,11 @@ void Image::ReadDataSubBlocks()
     followSize = this->mHeader->FollowSize;
     
     while (followSize--) {
-        fread(&nextByte, 1, sizeof(uint8_t), this->mFile);
+        fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
         this->mData.push_back(nextByte);
     }
 
-    fread(&nextByte, 1, sizeof(uint8_t), this->mFile);
+    fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
 
     while (true) {
         // Check for the end of sub block
@@ -63,11 +64,11 @@ void Image::ReadDataSubBlocks()
         
         followSize = nextByte;
         while (followSize--) {
-            fread(&nextByte, 1, sizeof(uint8_t), this->mFile);
+            fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
             this->mData.push_back(nextByte);
         }
 
-        fread(&nextByte, 1, sizeof(uint8_t), this->mFile);
+        fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
     }
 
     // Print out the compressed stream of data 
@@ -84,10 +85,11 @@ void Image::CheckExtensions()
     Debug::Print("\nChecking for extensions...");
 
     // Load a dummy header into memory
-    ExtensionHeader* extensionCheck = (ExtensionHeader*)malloc(sizeof(ExtensionHeader));
+    ExtensionHeader* extensionCheck = new ExtensionHeader;
 
+    // Continue to loop until the next byte is not an extension introducer
     while (true) {
-        fread(extensionCheck, 1, sizeof(ExtensionHeader), this->mFile);
+        fread(extensionCheck, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
         // If the dummy header contains an introducer for a extension, load the extension type
         if (extensionCheck->Introducer == EXTENSION_INTRODUCER) {
@@ -107,73 +109,79 @@ void Image::LoadExtension(ExtensionHeader* header)
     fseek(this->mFile, -2, SEEK_CUR);
 
     switch (header->Label) {
-    case ExtensionTypes::PlainText:
-    {
-        Debug::Print("Loding Plain Text Extension");
+        case ExtensionTypes::PlainText:
+        {
+            Debug::Print("Loding Plain Text Extension");
 
-        // Load Header
-        mExtensions->PlainText = new PlainTextExtension;
-        fread(&mExtensions->PlainText->Header, 1, sizeof(ExtensionHeader), this->mFile);
+            // Load Header
+            mExtensions->PlainText = new PlainTextExtension;
+            fread(&mExtensions->PlainText->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
-        // Load the block size into the struct and load the data of that size into the data buffer
-        fread(&mExtensions->PlainText->BlockSize, 1, sizeof(uint8_t), this->mFile);
+            // Load the block size into the struct and load the data of that size into the data buffer
+            fread(&mExtensions->PlainText->BlockSize, sizeof(uint8_t), 1, this->mFile);
 
-        mExtensions->PlainText->Data = (uint8_t*)malloc(sizeof(uint8_t) * mExtensions->PlainText->BlockSize);
-        fread(mExtensions->PlainText->Data, 1, mExtensions->PlainText->BlockSize, this->mFile);
-    } break;
-    case ExtensionTypes::GraphicsControl:
-    {
-        Debug::Print("Loading Graphics Control Extension");
-
-        // Load The entire Graphic Control Extension
-        mExtensions->GraphicsControl = new GraphicsControlExtension;
-        fread(mExtensions->GraphicsControl, 1, sizeof(GraphicsControlExtension), this->mFile);
-    } break;
-    case ExtensionTypes::Comment:
-    {
-        Debug::Print("Loding Comment Extension");
-
-        // Load Header
-        mExtensions->Comment = new CommentExtension;
-        fread(&mExtensions->Comment->Header, 1, sizeof(ExtensionHeader), this->mFile);
-
-        // Read a store bytes until 0x00 is hit
-        // Just as a reminder, I am discarding the comment information for now, implement later if needed
-        uint8_t nextByte = 0;
-        for (int i = 0; nextByte != 0x00; i++) {
-            fread(&nextByte, 1, sizeof(uint8_t), this->mFile);
+            mExtensions->PlainText->Data = new uint8_t[mExtensions->PlainText->BlockSize];
+            fread(mExtensions->PlainText->Data, sizeof(uint8_t), mExtensions->PlainText->BlockSize, this->mFile);
+            break;
         }
-    } break;
-    case ExtensionTypes::Application:
-    {
-        Debug::Print("Loading Application Extension");
+        case ExtensionTypes::GraphicsControl:
+        {
+            Debug::Print("Loading Graphics Control Extension");
 
-        // Load Header
-        mExtensions->Application = new ApplicationExtension;
-        // extensions->Application = (ApplicationExtension*)malloc(sizeof(ApplicationExtension));
-        fread(&mExtensions->Application->Header, 1, sizeof(ExtensionHeader), this->mFile);
+            // Load The entire Graphic Control Extension
+            mExtensions->GraphicsControl = new GraphicsControlExtension;
+            fread(mExtensions->GraphicsControl, sizeof(uint8_t), sizeof(GraphicsControlExtension), this->mFile);
+        } break;
+        case ExtensionTypes::Comment:
+        {
+            Debug::Print("Loding Comment Extension");
 
-        // Load the Block Length
-        fread(&mExtensions->Application->BlockLength, 1, sizeof(uint8_t), this->mFile);
+            // Load Header
+            mExtensions->Comment = new CommentExtension;
+            fread(&mExtensions->Comment->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
-        // Load Application Identifier
-        fread(&mExtensions->Application->Identifier, 1, mExtensions->Application->BlockLength, this->mFile);
+            // Read a store bytes until 0x00 is hit
+            // Just as a reminder, I am discarding the comment information for now, implement later if needed
+            uint8_t nextByte = 0;
+            for (int i = 0; nextByte != 0x00; i++) {
+                fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
+            }
         
-        // Load the authentication code
-        uint8_t tmp;
-        fread(&tmp, 1, sizeof(uint8_t), this->mFile);
-        fread(&mExtensions->Application->AuthenticationCode, 1, tmp, this->mFile);
+            break;
+        }
+        case ExtensionTypes::Application:
+        {
+            Debug::Print("Loading Application Extension");
 
-        // Check if the next byte in the file is the terminator
-        fread(&tmp, 1, sizeof(uint8_t), this->mFile);
-        if (!tmp)
-            Debug::Print("End of Application Extension");
-    } break;
-    default:
-    {
-        Debug::PrintErr("Recived Invalid extension type [%X]", header->Label);
-        fseek(this->mFile, 2, SEEK_CUR); // Restore the file position to where it was after reading header
-    } break;
+            // Load Header
+            mExtensions->Application = new ApplicationExtension;
+            // extensions->Application = (ApplicationExtension*)malloc(sizeof(ApplicationExtension));
+            fread(&mExtensions->Application->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
+
+            // Load the Block Length
+            fread(&mExtensions->Application->BlockLength, sizeof(uint8_t), 1, this->mFile);
+
+            // Load Application Identifier
+            fread(&mExtensions->Application->Identifier, sizeof(uint8_t), mExtensions->Application->BlockLength, this->mFile);
+            
+            // Load the authentication code
+            uint8_t tmp;
+            fread(&tmp, sizeof(uint8_t), 1, this->mFile);
+            fread(&mExtensions->Application->AuthenticationCode, sizeof(uint8_t), tmp, this->mFile);
+
+            // Check if the next byte in the file is the terminator
+            fread(&tmp, sizeof(uint8_t), 1, this->mFile);
+            if (!tmp)
+                Debug::Print("End of Application Extension");
+
+            break;
+        }
+        default:
+        {
+            Debug::PrintErr("Recived Invalid extension type [%X]", header->Label);
+            fseek(this->mFile, 2, SEEK_CUR); // Restore the file position to where it was after reading header
+            break;
+        }
     }
 }
 
