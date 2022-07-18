@@ -4,6 +4,7 @@
 #include "lzw.h"
 #include "errorhandler.h"
 #include "Debug/debug.h"
+#include "Debug/logger.h"
 
 #include <cstdint>
 #include <unistd.h>
@@ -19,7 +20,7 @@ GIF::GIF(FILE* _fp)
     fseek(this->mFile, 0, SEEK_END);
     this->mFilesize = ftell(this->mFile);
     rewind(this->mFile);
-    Debug::Print("Total File Size: %.2ldkB", (this->mFilesize / 1024));
+    LOG_INFO << "Total file size:" << (this->mFilesize / 1024) << "kB" << std::endl;
    
     // Initialize class members
     this->mHeader = new GifHeader;
@@ -47,7 +48,7 @@ void GIF::LoadHeader()
     if (!ValidHeader())
         ErrorHandler::err_n_die("Invalid GIF Format Header");
     else
-        Debug::Print("Valid GIF Header format");
+        LOG_INFO << "Valid GIF Header" << std::endl;
 
     this->mHeaderInitialized = true;
 }
@@ -55,16 +56,18 @@ void GIF::LoadHeader()
 void GIF::LoadLSD()
 {
     if (!this->mHeaderInitialized) {
-        Debug::PrintErr("Attempting to initialize Logical Screen Descriptor before header...\nReturning");
+        LOG_ERROR << "Attempted to intialize Logical Screen Descriptor before header" << std::endl;
         return;
     }
+
+    LOG_INFO << "Attempting to load Logical Screen Descriptor" << std::endl;
 
     //Load the LSD From GIF File 
     fread(this->mLsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), this->mFile);
 
     // Check to see if the GCT flag is set
     if (this->mLsd->Packed >> LSDMask::GlobalColorTable) {
-        Debug::Print("Global Color Table Present\nLoading GCT Descriptor...");
+        LOG_INFO << "GCTD Present - Loading GCTD" << std::endl;
 
         // Load the Global Color Table Descriptor Data
         this->mGctd = new GlobalColorTableDescriptor;
@@ -80,29 +83,30 @@ void GIF::LoadLSD()
             this->mColorTable[i] = color; 
         }
 
-        Debug::Print("Successfully Loaded GCT Descriptor");
+        LOG_SUCCESS << "Loaded GCTD" << std::endl;
         PrintColorTable();
     } else {
-        Debug::Print("Global Color Table Not Present");
+        LOG_INFO << "GCT Not present" << std::endl;
     }
 
     PrintHeaderInfo();
     this->mLSDInitialized = true;
+    LOG_SUCCESS << "Logical Screen Descriptor Initialized" << std::endl;
 }
 
 void GIF::GenerateFrameMap()
 {
     if (!this->mHeaderInitialized) {
-        Debug::PrintErr("Attempting to initialize frame map before header...\nReturning");
+        LOG_ERROR << "Attempted to intialize frame map before header" << std::endl;
         return;
     }
     
     if (!this->mLSDInitialized) {
-        Debug::PrintErr("Attempting to initialize frame map before Logical Screen Descriptor...\nReturning");
+        LOG_ERROR << "Attempted to intialize frame map before Logical Screen Descriptor" << std::endl;
         return;
     }
 
-    Debug::Print("Generating Frame Map");
+    LOG_INFO << "Generating Frame Map" << std::endl;
     uint8_t nextByte;
     
     // The pixel map will be initialized as a single vector
@@ -126,7 +130,7 @@ void GIF::GenerateFrameMap()
         img.CheckExtensions();
         
         // Load the decompressed image data and draw the frame
-        Debug::Print("\nLoading Image Data...");
+        LOG_INFO << "Loading Image Data" << std::endl;
         std::string rasterData = img.LoadImageData();
 
         img.UpdatePixelMap(&pixelMap, &rasterData, this->mLsd);
@@ -139,9 +143,9 @@ void GIF::GenerateFrameMap()
         // Check if the file ended correctly (should end on 0x3B)
         if ((size_t)ftell(this->mFile) == this->mFilesize - 1) {
             if (nextByte == TRAILER)
-                Debug::Print("File Ended Naturally");
+                LOG_SUCCESS << "File ended naturally" << std::endl;
             else
-                Debug::Print("File ended unaturally with byte [%X]", nextByte);
+                LOG_WARN << "File ended unaturally with byte [" << nextByte << "]" << std::endl;
 
             // There is nothing left to get from the file so close it
             fclose(this->mFile);
@@ -178,7 +182,7 @@ void GIF::LoopFrames()
                 }
 
                 if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                    Debug::Print("%c - End of Information", c);
+                    LOG_DEBUG << c << " - End of information" << std::endl;
                     break;
                 }
 

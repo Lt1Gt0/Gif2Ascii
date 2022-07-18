@@ -1,0 +1,130 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/colortounicode.o",
+      "src/colortounicode.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/colortounicode.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/colortounicode.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/Debug/debug.o",
+      "src/Debug/debug.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/Debug/debug.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/Debug/debug.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/Debug/logger.o",
+      "src/Debug/logger.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/Debug/logger.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/Debug/logger.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/errorhandler.o",
+      "src/errorhandler.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/errorhandler.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/errorhandler.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/gif.o",
+      "src/gif.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/gif.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/gif.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/image.o",
+      "src/image.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/image.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/image.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/lzw.o",
+      "src/lzw.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/lzw.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/lzw.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Isrc/headers",
+      "-c",
+      "-o",
+      "obj/source.o",
+      "src/source.cpp"
+    ],
+    "directory": "/home/simonk/Documents/github/Gif2Ascii",
+    "file": "/home/simonk/Documents/github/Gif2Ascii/src/source.cpp",
+    "output": "/home/simonk/Documents/github/Gif2Ascii/obj/source.o"
+  }
+]

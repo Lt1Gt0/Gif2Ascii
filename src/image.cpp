@@ -7,6 +7,7 @@
 #include "colortounicode.h"
 #include "errorhandler.h"
 #include "Debug/debug.h"
+#include "Debug/logger.h"
 
 Image::Image(FILE* _fp, Color* _colortable, uint8_t _colorTableSize)
 {
@@ -29,9 +30,9 @@ std::string Image::LoadImageData()
     // The current GIF I am trying to target does not have a need for a LCT so I am just
     // going to skip loading one for now (sucks to suck)
     if ((this->mDescriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1)
-        Debug::Print("Loading Local Color Table");
+        LOG_INFO << "Loading Local Color Table" << std::endl;
     else
-        Debug::Print("No Local Color Table Flag Set");
+        LOG_INFO << "Local Color Table flag not set" << std::endl;
 
     // Load the image header into memory
     fread(this->mHeader, sizeof(uint8_t), sizeof(ImageDataHeader), this->mFile); // Only read 2 bytes of file steam for LZW min and Follow Size 
@@ -80,7 +81,7 @@ void Image::ReadDataSubBlocks()
 
 void Image::CheckExtensions()
 {
-    Debug::Print("\nChecking for extensions...");
+    LOG_INFO << "Checking for extensions" << std::endl;
 
     // Load a dummy header into memory
     ExtensionHeader* extensionCheck = new ExtensionHeader;
@@ -109,7 +110,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     switch (header->Label) {
         case ExtensionTypes::PlainText:
         {
-            Debug::Print("Loding Plain Text Extension");
+            LOG_INFO << "Loading plain text extension" << std::endl;
 
             // Load Header
             mExtensions->PlainText = new PlainTextExtension;
@@ -124,7 +125,7 @@ void Image::LoadExtension(ExtensionHeader* header)
         }
         case ExtensionTypes::GraphicsControl:
         {
-            Debug::Print("Loading Graphics Control Extension");
+            LOG_INFO << "Loading graphics control extension" << std::endl;
 
             // Load The entire Graphic Control Extension
             mExtensions->GraphicsControl = new GraphicsControlExtension;
@@ -132,7 +133,7 @@ void Image::LoadExtension(ExtensionHeader* header)
         } break;
         case ExtensionTypes::Comment: // TODO
         {
-            Debug::Print("Loding Comment Extension");
+            LOG_INFO << "Loading comment extension" << std::endl;
 
             // Load Header
             mExtensions->Comment = new CommentExtension;
@@ -149,7 +150,7 @@ void Image::LoadExtension(ExtensionHeader* header)
         }
         case ExtensionTypes::Application:
         {
-            Debug::Print("Loading Application Extension");
+            LOG_INFO << "Loading application extension" << std::endl;
 
             // Load Header
             mExtensions->Application = new ApplicationExtension;
@@ -169,13 +170,13 @@ void Image::LoadExtension(ExtensionHeader* header)
             // Check if the next byte in the file is the terminator
             fread(&tmp, sizeof(uint8_t), 1, this->mFile);
             if (!tmp)
-                Debug::Print("End of Application Extension");
+                LOG_DEBUG << "End of application extension" << std::endl;
 
             break;
         }
         default:
         {
-            Debug::PrintErr("Recived Invalid extension type [%X]", header->Label);
+            LOG_ERROR << "Recived invalid extension type [" << header->Label <<  "]" << std::endl;
             fseek(this->mFile, 2, SEEK_CUR); // Restore the file position to where it was after reading header
             break;
         }
@@ -212,7 +213,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, L
 
 void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
 {
-    Debug::Print("Drawing Over Image");
+    LOG_INFO << "Drawing over image" << std::endl;
     int offset;
     int currentChar = 0;
     for (int row = 0; row < this->mDescriptor->Height; row++) {
@@ -228,12 +229,12 @@ void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, 
 
 void Image::RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap)
 {
-    Debug::Print("Restore Canvas to Background");
+    LOG_INFO << "Restore canvas to background" << std::endl;
 }
 
 void Image::RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap)
 {
-    Debug::Print("Restore Canvas to Previous State");
+    LOG_INFO << "Restore canvas to previous state" << std::endl;
 }
 
 void Image::PrintDescriptor()
