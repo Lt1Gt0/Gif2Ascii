@@ -40,7 +40,10 @@ class GIF
         bool mHeaderInitialized;
         bool mLSDInitialized;
         bool mFrameMapInitialized;
-        
+
+        std::vector<char> mPixelMap;
+        std::vector<char> mPrevPixelMap;
+
     private:
         /**
          * Load GIF File header into mHeader

@@ -102,7 +102,6 @@ struct ApplicationExtension {
 struct CommentExtension {
     ExtensionHeader         Header;
     std::vector<uint8_t>    Data; 
-    uint8_t                 Terminator;
 };
 
 struct ImageExtensions {

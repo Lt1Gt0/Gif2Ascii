@@ -35,6 +35,7 @@ To run the program
   - [ ] Comment extensions
   - [ ] Frame display timing (currently set on a 1 second interval per frame)
   - [ ] Correct ascii mappings according to colors
+  - [ ] Transparency 
 
   __MEDIUM PRIORITY__
   - [ ] Dump gif information to seperate file for viewing (maybe)

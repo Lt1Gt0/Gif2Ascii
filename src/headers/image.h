@@ -26,7 +26,7 @@ class Image
         void CheckExtensions();
 
         // Return the charstream given after decompression
-        void UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, LogicalScreenDescriptor* lsd);
+        void UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPixMap, std::string* rasterData, LogicalScreenDescriptor* lsd);
 
     private:
         FILE* mFile;
@@ -37,7 +37,7 @@ class Image
         // Different Drawing behaviors based off Disposal Methods
         void DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
         void RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap);
-        void RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap);
+        void RestoreToPrevState(std::string* rasterData, std::vector<char>* pixMap, std::vector<char>* prevPixMap);
         
         void LoadExtension(ExtensionHeader* header);
         

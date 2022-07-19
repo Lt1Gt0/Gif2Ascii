@@ -13,7 +13,7 @@
 int main(int argc, char** argv)
 {
     // Initialize logger
-    LOG_INIT("", "info")
+    LOG_INIT("logs/", "info")
         
     if (argc < 2)
         ErrorHandler::err_n_die("Usage: %s <filepath>", argv[0]);

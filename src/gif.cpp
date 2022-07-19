@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <unordered_map>
+#include <ncurses.h>
+#include <thread>
 
 GIF::GIF(FILE* _fp)
 {
@@ -27,7 +29,8 @@ GIF::GIF(FILE* _fp)
     this->mLsd = new LogicalScreenDescriptor;
     this->mImageData = std::vector<Image>();
     this->mFrameMap = std::vector<std::vector<char>>();
-    this->mHeaderInitialized = false; 
+    this->mPixelMap = std::vector<char>();
+    this->mPrevPixelMap = std::vector<char>();
     this->mFrameMapInitialized = false;
     this->mLSDInitialized = false;
 }
@@ -112,13 +115,12 @@ void GIF::GenerateFrameMap()
     // The pixel map will be initialized as a single vector
     // to mimic a two dimensional array, elements are accessed like so
     // (char) pixel = PixelMap.at(ROW * width) + COL
-    std::vector<char> pixelMap;
-    pixelMap.resize(this->mLsd->Width * this->mLsd->Height);
+    this->mPixelMap.resize(this->mLsd->Width * this->mLsd->Height);
 
     // Initialize pixel map with blank characters
     for (int row = 0; row < this->mLsd->Height; row++) {
         for (int col = 0; col < this->mLsd->Width; col++) {
-            pixelMap.at((row * this->mLsd->Width) + col) = ' ';
+            this->mPixelMap.at((row * this->mLsd->Width) + col) = ' ';
         }
     }
 
@@ -133,8 +135,9 @@ void GIF::GenerateFrameMap()
         LOG_INFO << "Loading Image Data" << std::endl;
         std::string rasterData = img.LoadImageData();
 
-        img.UpdatePixelMap(&pixelMap, &rasterData, this->mLsd);
-        this->mFrameMap.push_back(pixelMap);
+        this->mPrevPixelMap = this->mPixelMap; 
+        img.UpdatePixelMap(&this->mPixelMap, &this->mPrevPixelMap, &rasterData, this->mLsd);
+        this->mFrameMap.push_back(this->mPixelMap);
         this->mImageData.push_back(img);
 
         fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
@@ -162,8 +165,8 @@ void GIF::LoopFrames()
     // reworked to make more sense
 
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mGctd->NumberOfColors);
-    system("clear");
-
+    initscr();
+    clear();
     while (true) {
         int frameIdx = 0;
 
@@ -178,7 +181,7 @@ void GIF::LoopFrames()
             for (char c : frame) {
                 if (col >= this->mLsd->Width) {
                     col = 0;
-                    fprintf(stderr, "\n");
+                    printw("\n");
                 }
 
                 if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
@@ -198,18 +201,18 @@ void GIF::LoopFrames()
                 sum += color.Blue;
 
                 averageBrightness = (float)sum / (float)COLOR_SIZE;
-                fprintf(stderr, "%s", ColorToUnicode(color));
-                // fprintf(stderr, "%s", BrightnessToUnicode(averageBrightness));
+                //addstr(ColorToUnicode(color));
+                addstr(BrightnessToUnicode(averageBrightness));
 
                 col++;
                 sum = 0;
             }
 
-            // Debug::Print("\n--------------------------------------------------");
-            //sleep((double) this->mImageData[frameIdx].extensions->GraphicsControl->DelayTime / 1000);
-            sleep(1); // TODO
+            std::this_thread::sleep_for(std::chrono::milliseconds(mImageData[frameIdx].mExtensions->GraphicsControl->DelayTime * 10));
+
             frameIdx++;
-            system("clear");
+            refresh();
+            clear();
         }
     }
 }

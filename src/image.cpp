@@ -84,7 +84,8 @@ void Image::CheckExtensions()
     LOG_INFO << "Checking for extensions" << std::endl;
 
     // Load a dummy header into memory
-    ExtensionHeader* extensionCheck = new ExtensionHeader;
+    // Allocate space in memory for an extension header
+    ExtensionHeader* extensionCheck = (ExtensionHeader*)malloc(sizeof(ExtensionHeader));
 
     // Continue to loop until the next byte is not an extension introducer
     while (true) {
@@ -121,6 +122,8 @@ void Image::LoadExtension(ExtensionHeader* header)
 
             mExtensions->PlainText->Data = new uint8_t[mExtensions->PlainText->BlockSize];
             fread(mExtensions->PlainText->Data, sizeof(uint8_t), mExtensions->PlainText->BlockSize, this->mFile);
+
+            LOG_INFO << "End of plain text extension" << std::endl;
             break;
         }
         case ExtensionTypes::GraphicsControl:
@@ -130,8 +133,10 @@ void Image::LoadExtension(ExtensionHeader* header)
             // Load The entire Graphic Control Extension
             mExtensions->GraphicsControl = new GraphicsControlExtension;
             fread(mExtensions->GraphicsControl, sizeof(uint8_t), sizeof(GraphicsControlExtension), this->mFile);
+            
+            LOG_INFO << "End of graphics control extension" << std::endl;
         } break;
-        case ExtensionTypes::Comment: // TODO
+        case ExtensionTypes::Comment:
         {
             LOG_INFO << "Loading comment extension" << std::endl;
 
@@ -139,12 +144,14 @@ void Image::LoadExtension(ExtensionHeader* header)
             mExtensions->Comment = new CommentExtension;
             fread(&mExtensions->Comment->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
-            // Read a store bytes until 0x00 is hit
-            // Just as a reminder, I am discarding the comment information for now, implement later if needed
+            // Read into the data section until a null terminator is hit
             uint8_t nextByte = 0;
             for (int i = 0; nextByte != 0x00; i++) {
                 fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
+                mExtensions->Comment->Data.push_back(nextByte);
             }
+
+            LOG_INFO << "End of comment extension" << std::endl;
         
             break;
         }
@@ -170,7 +177,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             // Check if the next byte in the file is the terminator
             fread(&tmp, sizeof(uint8_t), 1, this->mFile);
             if (!tmp)
-                LOG_DEBUG << "End of application extension" << std::endl;
+                LOG_INFO << "End of application extension" << std::endl;
 
             break;
         }
@@ -183,7 +190,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     }
 }
 
-void Image::UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, LogicalScreenDescriptor* lsd)
+void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPixMap, std::string* rasterData, LogicalScreenDescriptor* lsd)
 {
     // Because each gif can have a different disposal method for different frames (according to GIF89a)
     // it is best to handle each disposal method instread of printing the decompressed codestream directly
@@ -198,7 +205,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::string* rasterData, L
         RestoreCanvasToBG(rasterData, pixMap);
         break;
     case 3:
-        RestoreToPrevState(rasterData, pixMap);
+        RestoreToPrevState(rasterData, pixMap, prevPixMap);
         break;
     case 4:
     case 5:
@@ -232,9 +239,10 @@ void Image::RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelM
     LOG_INFO << "Restore canvas to background" << std::endl;
 }
 
-void Image::RestoreToPrevState(std::string* rasterData, std::vector<char>* pixelMap)
+void Image::RestoreToPrevState(std::string* rasterData, std::vector<char>* pixMap, std::vector<char>* prevPixMap)
 {
     LOG_INFO << "Restore canvas to previous state" << std::endl;
+    pixMap = prevPixMap;
 }
 
 void Image::PrintDescriptor()
