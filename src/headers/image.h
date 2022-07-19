@@ -17,6 +17,9 @@ class Image
         ImageExtensions* mExtensions;
         Color* mColorTable;
         std::vector<uint8_t> mData;
+
+        bool mTransparent;
+        uint8_t mTransparentColorIndex;
         
     public:
         Image(FILE* _fp, Color* _colortable, uint8_t _colorTableSize);

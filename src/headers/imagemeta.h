@@ -11,6 +11,8 @@
 #define IMAGE_DESCRIPTOR_SEPERATOR  0x2C
 #define TRAILER                     0x3B
 
+#define TRANSPRENT_CHAR             " "
+
 enum ImgDescMask {
     LocalColorTable = 7,
     Interlace       = 6,
@@ -25,11 +27,20 @@ enum ExtensionTypes {
     Application     = 0xFF,
 };
 
-enum GCEMask {
-    Disposal            = 2,
-    UserInput           = 1,
-    TransparentColor    = 0,
-};
+//enum GCEMask {
+    //Disposal            = 2,
+    //UserInput           = 1,
+    //TransparentColor    = 0,
+//};
+
+namespace GCEMask
+{
+    enum {
+        Disposal            = 2,
+        UserInput           = 1,
+        TransparentColor    = 0 
+    };
+}
 
 struct ImageDescriptor {
     uint8_t     Seperator;

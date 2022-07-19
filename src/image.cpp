@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <unordered_map>
 #include "lzw.h"
-#include "colortounicode.h"
 #include "errorhandler.h"
 #include "Debug/debug.h"
 #include "Debug/logger.h"
@@ -26,9 +25,7 @@ std::string Image::LoadImageData()
     // Load the Image Descriptor into memory
     fread(this->mDescriptor, sizeof(uint8_t), sizeof(ImageDescriptor), this->mFile);
 
-    // Load the Local Color Table if it is set 
-    // The current GIF I am trying to target does not have a need for a LCT so I am just
-    // going to skip loading one for now (sucks to suck)
+    // TODO - Add support for LCT in GIFS that require it
     if ((this->mDescriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1)
         LOG_INFO << "Loading Local Color Table" << std::endl;
     else
@@ -114,14 +111,14 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "Loading plain text extension" << std::endl;
 
             // Load Header
-            mExtensions->PlainText = new PlainTextExtension;
-            fread(&mExtensions->PlainText->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
+            this->mExtensions->PlainText = new PlainTextExtension;
+            fread(&this->mExtensions->PlainText->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
             // Load the block size into the struct and load the data of that size into the data buffer
-            fread(&mExtensions->PlainText->BlockSize, sizeof(uint8_t), 1, this->mFile);
+            fread(&this->mExtensions->PlainText->BlockSize, sizeof(uint8_t), 1, this->mFile);
 
-            mExtensions->PlainText->Data = new uint8_t[mExtensions->PlainText->BlockSize];
-            fread(mExtensions->PlainText->Data, sizeof(uint8_t), mExtensions->PlainText->BlockSize, this->mFile);
+            this->mExtensions->PlainText->Data = new uint8_t[this->mExtensions->PlainText->BlockSize];
+            fread(this->mExtensions->PlainText->Data, sizeof(uint8_t), this->mExtensions->PlainText->BlockSize, this->mFile);
 
             LOG_INFO << "End of plain text extension" << std::endl;
             break;
@@ -131,8 +128,19 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "Loading graphics control extension" << std::endl;
 
             // Load The entire Graphic Control Extension
-            mExtensions->GraphicsControl = new GraphicsControlExtension;
-            fread(mExtensions->GraphicsControl, sizeof(uint8_t), sizeof(GraphicsControlExtension), this->mFile);
+            this->mExtensions->GraphicsControl = new GraphicsControlExtension;
+            fread(this->mExtensions->GraphicsControl, sizeof(uint8_t), sizeof(GraphicsControlExtension), this->mFile);
+            
+            // Check for transparency
+            if ((this->mExtensions->GraphicsControl->Packed >> GCEMask::TransparentColor) & 0x01) {
+                this->mTransparent = true;
+                this->mTransparentColorIndex = this->mExtensions->GraphicsControl->TransparentColorIndex;
+
+                LOG_INFO << "Transparent flag set in image" << std::endl;
+                LOG_INFO << "Tranparent Color Index: " << (int)this->mTransparentColorIndex << std::endl;
+            } else {
+                LOG_INFO << "Transparent flag not set" << std::endl; 
+            }
             
             LOG_INFO << "End of graphics control extension" << std::endl;
         } break;
@@ -141,14 +149,14 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "Loading comment extension" << std::endl;
 
             // Load Header
-            mExtensions->Comment = new CommentExtension;
-            fread(&mExtensions->Comment->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
+            this->mExtensions->Comment = new CommentExtension;
+            fread(&this->mExtensions->Comment->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
             // Read into the data section until a null terminator is hit
             uint8_t nextByte = 0;
             for (int i = 0; nextByte != 0x00; i++) {
                 fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
-                mExtensions->Comment->Data.push_back(nextByte);
+                this->mExtensions->Comment->Data.push_back(nextByte);
             }
 
             LOG_INFO << "End of comment extension" << std::endl;
@@ -160,19 +168,19 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "Loading application extension" << std::endl;
 
             // Load Header
-            mExtensions->Application = new ApplicationExtension;
-            fread(&mExtensions->Application->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
+            this->mExtensions->Application = new ApplicationExtension;
+            fread(&this->mExtensions->Application->Header, sizeof(uint8_t), sizeof(ExtensionHeader), this->mFile);
 
             // Load the Block Length
-            fread(&mExtensions->Application->BlockLength, sizeof(uint8_t), 1, this->mFile);
+            fread(&this->mExtensions->Application->BlockLength, sizeof(uint8_t), 1, this->mFile);
 
             // Load Application Identifier
-            fread(&mExtensions->Application->Identifier, sizeof(uint8_t), mExtensions->Application->BlockLength, this->mFile);
+            fread(&this->mExtensions->Application->Identifier, sizeof(uint8_t), this->mExtensions->Application->BlockLength, this->mFile);
             
             // Load the authentication code
             uint8_t tmp;
             fread(&tmp, sizeof(uint8_t), 1, this->mFile);
-            fread(&mExtensions->Application->AuthenticationCode, sizeof(uint8_t), tmp, this->mFile);
+            fread(&this->mExtensions->Application->AuthenticationCode, sizeof(uint8_t), tmp, this->mFile);
 
             // Check if the next byte in the file is the terminator
             fread(&tmp, sizeof(uint8_t), 1, this->mFile);
@@ -194,7 +202,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
 {
     // Because each gif can have a different disposal method for different frames (according to GIF89a)
     // it is best to handle each disposal method instread of printing the decompressed codestream directly
-    int disposalMethod = ((mExtensions->GraphicsControl->Packed >> Disposal) & 0x07);
+    int disposalMethod = ((this->mExtensions->GraphicsControl->Packed >> GCEMask::Disposal) & 0x07);
     switch (disposalMethod) {
     case 0:
         break;
@@ -213,7 +221,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
     case 7:
         break;
     default:
-        ErrorHandler::err_n_die("Undefined Disposal Method: %d\n", Disposal);
+        ErrorHandler::err_n_die("Undefined Disposal Method: %d\n", disposalMethod);
         break;
     }
 }

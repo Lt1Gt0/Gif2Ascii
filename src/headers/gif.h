@@ -7,6 +7,12 @@
 #include "gifmeta.h"
 #include "image.h"
 
+// U+0D9E ඞ
+// U+0DAC ඬ
+// U+0DB0 ධ
+// U+0E8F ຏ
+// U+0EA5 ລ
+
 class GIF 
 {
     public:
@@ -40,6 +46,7 @@ class GIF
         bool mHeaderInitialized;
         bool mLSDInitialized;
         bool mFrameMapInitialized;
+        bool mFrameOutOfBounds;
 
         std::vector<char> mPixelMap;
         std::vector<char> mPrevPixelMap;
@@ -74,6 +81,8 @@ class GIF
          */
         void GenerateFrameMap();
         
+        char ColorToChar(const char* charMap, const Color& color);
+
         // Debug Prints
         void PrintHeaderInfo();
         void PrintColorTable();

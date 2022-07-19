@@ -1,6 +1,6 @@
 #include "gif.h"
-#include "colortounicode.h"
 #include "gifmeta.h"
+#include "imagemeta.h"
 #include "lzw.h"
 #include "errorhandler.h"
 #include "Debug/debug.h"
@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <ncurses.h>
 #include <thread>
+#include <string.h>
+#include <tgmath.h>
 
 GIF::GIF(FILE* _fp)
 {
@@ -165,6 +167,10 @@ void GIF::LoopFrames()
     // reworked to make more sense
 
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mGctd->NumberOfColors);
+
+    // standard char map for grayscale ascii color represnetation
+    const char* charMap = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'.";
+    
     initscr();
     clear();
     while (true) {
@@ -174,8 +180,7 @@ void GIF::LoopFrames()
         for (std::vector<char> frame : this->mFrameMap) {
             
             // Initialize variables for Image Display
-            int col = 0, sum = 0;
-            double averageBrightness;
+            int col = 0;
 
             // Go through each code in the frame
             for (char c : frame) {
@@ -193,19 +198,16 @@ void GIF::LoopFrames()
                 if ((int)c < 0) 
                     break;
 
-                Color color = this->mColorTable[(int)c];
-
-                // Get the sum of each color brightness at the current code
-                sum += color.Red;
-                sum += color.Green;
-                sum += color.Blue;
-
-                averageBrightness = (float)sum / (float)COLOR_SIZE;
-                //addstr(ColorToUnicode(color));
-                addstr(BrightnessToUnicode(averageBrightness));
+                // Check to see if the transparency flag is set in the image if so
+                // check if the current code is the transparency color index
+                if (mImageData[frameIdx].mTransparent && (int)c == mImageData[frameIdx].mTransparentColorIndex) {
+                    addstr(TRANSPRENT_CHAR); 
+                } else {
+                    Color color = this->mColorTable[(int)c];
+                    addch(ColorToChar(charMap, color));
+                }
 
                 col++;
-                sum = 0;
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(mImageData[frameIdx].mExtensions->GraphicsControl->DelayTime * 10));
@@ -215,6 +217,15 @@ void GIF::LoopFrames()
             clear();
         }
     }
+}
+
+char GIF::ColorToChar(const char* charMap, const Color& color)
+{
+    // Brightness in this context is the brighness calculated in grayscale (https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale)
+    float brightness = (0.2126 * color.Red + 0.7152 * color.Green * 0.0722 * color.Blue);
+    float chrIdx = brightness / (255.0 / strlen(charMap));
+    char c = charMap[(int)floor(chrIdx)]; 
+    return c;
 }
 
 bool GIF::ValidHeader()
