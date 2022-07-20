@@ -143,7 +143,8 @@ void Image::LoadExtension(ExtensionHeader* header)
             }
             
             LOG_INFO << "End of graphics control extension" << std::endl;
-        } break;
+             break;
+        }
         case ExtensionTypes::Comment:
         {
             LOG_INFO << "Loading comment extension" << std::endl;
@@ -160,7 +161,6 @@ void Image::LoadExtension(ExtensionHeader* header)
             }
 
             LOG_INFO << "End of comment extension" << std::endl;
-        
             break;
         }
         case ExtensionTypes::Application:

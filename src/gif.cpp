@@ -11,10 +11,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unordered_map>
-#include <ncurses.h>
-#include <thread>
 #include <string.h>
-#include <tgmath.h>
 
 GIF::GIF(FILE* _fp)
 {
@@ -76,7 +73,7 @@ void GIF::LoadLSD()
 
         // Load the Global Color Table Descriptor Data
         this->mGctd = new GlobalColorTableDescriptor;
-        this->mGctd->SizeInLSD = (this->mLsd->Packed >> LSDMask::LSDSize) & 0x07;
+        this->mGctd->SizeInLSD = (this->mLsd->Packed >> LSDMask::Size) & 0x07;
         this->mGctd->NumberOfColors = pow(2, this->mGctd->SizeInLSD + 1);
         this->mGctd->ByteLegth = 3 * this->mGctd->NumberOfColors;
 
@@ -161,73 +158,6 @@ void GIF::GenerateFrameMap()
     this->mFrameMapInitialized = true;
 }
 
-void GIF::LoopFrames()
-{
-    // This is where things get a bit more confusing and will most likely be completely
-    // reworked to make more sense
-
-    std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mGctd->NumberOfColors);
-
-    // standard char map for grayscale ascii color represnetation
-    const char* charMap = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'.";
-    
-    initscr();
-    clear();
-    while (true) {
-        int frameIdx = 0;
-
-        // Go through each frame in the frame map
-        for (std::vector<char> frame : this->mFrameMap) {
-            
-            // Initialize variables for Image Display
-            int col = 0;
-
-            // Go through each code in the frame
-            for (char c : frame) {
-                if (col >= this->mLsd->Width) {
-                    col = 0;
-                    printw("\n");
-                }
-
-                if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                    LOG_DEBUG << c << " - End of information" << std::endl;
-                    break;
-                }
-
-                // If for some reason a character below 0 then leave the loop
-                if ((int)c < 0) 
-                    break;
-
-                // Check to see if the transparency flag is set in the image if so
-                // check if the current code is the transparency color index
-                if (mImageData[frameIdx].mTransparent && (int)c == mImageData[frameIdx].mTransparentColorIndex) {
-                    addstr(TRANSPRENT_CHAR); 
-                } else {
-                    Color color = this->mColorTable[(int)c];
-                    addch(ColorToChar(charMap, color));
-                }
-
-                col++;
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(mImageData[frameIdx].mExtensions->GraphicsControl->DelayTime * 10));
-
-            frameIdx++;
-            refresh();
-            clear();
-        }
-    }
-}
-
-char GIF::ColorToChar(const char* charMap, const Color& color)
-{
-    // Brightness in this context is the brighness calculated in grayscale (https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale)
-    float brightness = (0.2126 * color.Red + 0.7152 * color.Green * 0.0722 * color.Blue);
-    float chrIdx = brightness / (255.0 / strlen(charMap));
-    char c = charMap[(int)floor(chrIdx)]; 
-    return c;
-}
-
 bool GIF::ValidHeader()
 {
     for (int i = 0; i < 6; i++) {
@@ -253,8 +183,8 @@ void GIF::PrintHeaderInfo()
     Debug::Print("\tHeight: %d", this->mLsd->Height);
     Debug::Print("\tGlobal Color Table Flag: %d", (this->mLsd->Packed >> LSDMask::GlobalColorTable) & 0x1);
     Debug::Print("\tColor Resolution: %d", (this->mLsd->Packed >> LSDMask::ColorResolution) & 0x07);
-    Debug::Print("\tSort Flag: %d", (this->mLsd->Packed >> LSDMask::LSDSort) & 0x01);
-    Debug::Print("\tGlobal Color Table Size: %d", (this->mLsd->Packed >> LSDMask::LSDSize) & 0x07);
+    Debug::Print("\tSort Flag: %d", (this->mLsd->Packed >> LSDMask::Sort) & 0x01);
+    Debug::Print("\tGlobal Color Table Size: %d", (this->mLsd->Packed >> LSDMask::Size) & 0x07);
     Debug::Print("\tBackground Color Index: %d", this->mLsd->BackgroundColorIndex);
     Debug::Print("\tPixel Aspect Ratio: %d", this->mLsd->PixelAspectRatio);
 

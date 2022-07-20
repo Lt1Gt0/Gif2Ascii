@@ -16,12 +16,6 @@ struct GifHeader {
     char Version[3];
 };
 
-enum LSDMask {
-    GlobalColorTable    = 7,
-    ColorResolution     = 4,
-    LSDSort             = 3, // Sort flag
-    LSDSize             = 0, // Size of Global Color Table
-};
 
 struct LogicalScreenDescriptor {
     uint16_t    Width;
@@ -49,5 +43,16 @@ struct Color {
     uint8_t Blue;
     uint8_t Green;
 };
+
+
+namespace LSDMask 
+{
+    enum {
+        GlobalColorTable    = 7,
+        ColorResolution     = 4,
+        Sort             = 3, // Sort flag
+        Size             = 0, // Size of Global Color Table
+    };
+}
 
 #endif // _GIF_META_H

@@ -10,6 +10,8 @@
 #include "image.h"
 #include "gifmeta.h"
 
+#define SPECIAL_CODE_COUNT 2
+
 namespace LZW 
 {
     using namespace std;

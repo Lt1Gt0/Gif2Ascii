@@ -44,6 +44,7 @@ To run the program
   - [ ] Frame display timing
   - [ ] Correct ascii mappings according to colors
   - [ ] Transparency 
+  - [ ] Move drawing frame data to seperate file for less confusion
 
   __MEDIUM PRIORITY__
   - [ ] Dump gif information to seperate file for viewing (maybe)

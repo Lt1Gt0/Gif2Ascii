@@ -1,4 +1,5 @@
 #include "gif.h"
+#include "drawgif.h"
 #include "errorhandler.h"
 #include "Debug/debug.h"
 #include "Debug/logger.h"
@@ -29,10 +30,13 @@ int main(int argc, char** argv)
 
     GIF* gif = new GIF(fp);
     LOG_INFO << "Reading GIF Information" << std::endl;
-    
     gif->Read();
-    gif->LoopFrames();
 
+    // Setup drawing procdure and display frame data
+    Draw::Initialize(gif);
+    Draw::LoopFrames(gif);
+
+    Draw::End();
     logger.Close();
     return 0;
 }

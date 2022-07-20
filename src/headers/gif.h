@@ -31,15 +31,7 @@ class GIF
         /** 
          * Read each header of the file into their respective members
          */ 
-
         void Read();
-
-        /**
-         * Loop through each frame in the loaded frame map
-         *
-         * @return NONE
-         */
-        void LoopFrames();
 
     private:
         size_t mFilesize;
@@ -81,8 +73,6 @@ class GIF
          */
         void GenerateFrameMap();
         
-        char ColorToChar(const char* charMap, const Color& color);
-
         // Debug Prints
         void PrintHeaderInfo();
         void PrintColorTable();

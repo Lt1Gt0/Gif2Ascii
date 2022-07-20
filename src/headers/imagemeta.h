@@ -13,34 +13,6 @@
 
 #define TRANSPRENT_CHAR             " "
 
-enum ImgDescMask {
-    LocalColorTable = 7,
-    Interlace       = 6,
-    IMGSort         = 5, // Sort flag
-    IMGSize         = 0, // Size of Local Color Table
-};
-
-enum ExtensionTypes { 
-    PlainText       = 0x01,
-    GraphicsControl = 0xF9,
-    Comment         = 0xFE,
-    Application     = 0xFF,
-};
-
-//enum GCEMask {
-    //Disposal            = 2,
-    //UserInput           = 1,
-    //TransparentColor    = 0,
-//};
-
-namespace GCEMask
-{
-    enum {
-        Disposal            = 2,
-        UserInput           = 1,
-        TransparentColor    = 0 
-    };
-}
 
 struct ImageDescriptor {
     uint8_t     Seperator;
@@ -121,5 +93,34 @@ struct ImageExtensions {
     ApplicationExtension*       Application;
     CommentExtension*           Comment;
 };
+
+namespace ImgDescMask
+{
+    enum {
+        LocalColorTable = 7,
+        Interlace       = 6,
+        IMGSort         = 5, // Sort flag
+        IMGSize         = 0, // Size of Local Color Table
+    };
+}
+
+namespace ExtensionTypes
+{
+    enum { 
+        PlainText       = 0x01,
+        GraphicsControl = 0xF9,
+        Comment         = 0xFE,
+        Application     = 0xFF,
+    };
+}
+
+namespace GCEMask
+{
+    enum {
+        Disposal            = 2,
+        UserInput           = 1,
+        TransparentColor    = 0 
+    };
+}
 
 #endif // _IMAGE_META_H

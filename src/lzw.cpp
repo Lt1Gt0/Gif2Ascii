@@ -85,7 +85,7 @@ namespace LZW
     {
         unordered_map<int, string> table;
 
-        for (int i = 0; i < colorTableSize + 2; i++) { 
+        for (int i = 0; i < colorTableSize + SPECIAL_CODE_COUNT; i++) { 
             string ch = ""; 
             ch += char(i); 
             table[i] = ch; 
