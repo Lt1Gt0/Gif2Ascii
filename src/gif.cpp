@@ -48,7 +48,7 @@ void GIF::LoadHeader()
 
     // Check for a valid GIF Header
     if (!ValidHeader())
-        ErrorHandler::err_n_die("Invalid GIF Format Header");
+        err_n_die("Invalid GIF Format Header");
     else
         LOG_INFO << "Valid GIF Header" << std::endl;
 
@@ -68,12 +68,12 @@ void GIF::LoadLSD()
     fread(this->mLsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), this->mFile);
 
     // Check to see if the GCT flag is set
-    if (this->mLsd->Packed >> LSDMask::GlobalColorTable) {
+    if (this->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) {
         LOG_INFO << "GCTD Present - Loading GCTD" << std::endl;
 
         // Load the Global Color Table Descriptor Data
         this->mGctd = new GlobalColorTableDescriptor;
-        this->mGctd->SizeInLSD = (this->mLsd->Packed >> LSDMask::Size) & 0x07;
+        this->mGctd->SizeInLSD = (this->mLsd->Packed >> (uint8_t)LSDMask::Size) & 0x07;
         this->mGctd->NumberOfColors = pow(2, this->mGctd->SizeInLSD + 1);
         this->mGctd->ByteLegth = 3 * this->mGctd->NumberOfColors;
 
@@ -181,14 +181,14 @@ void GIF::PrintHeaderInfo()
     Debug::Print("[Logical Screen Descriptor]");
     Debug::Print("\tWidth: %d", this->mLsd->Width);
     Debug::Print("\tHeight: %d", this->mLsd->Height);
-    Debug::Print("\tGlobal Color Table Flag: %d", (this->mLsd->Packed >> LSDMask::GlobalColorTable) & 0x1);
-    Debug::Print("\tColor Resolution: %d", (this->mLsd->Packed >> LSDMask::ColorResolution) & 0x07);
-    Debug::Print("\tSort Flag: %d", (this->mLsd->Packed >> LSDMask::Sort) & 0x01);
-    Debug::Print("\tGlobal Color Table Size: %d", (this->mLsd->Packed >> LSDMask::Size) & 0x07);
+    Debug::Print("\tGlobal Color Table Flag: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) & 0x1);
+    Debug::Print("\tColor Resolution: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::ColorResolution) & 0x07);
+    Debug::Print("\tSort Flag: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::Sort) & 0x01);
+    Debug::Print("\tGlobal Color Table Size: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::Size) & 0x07);
     Debug::Print("\tBackground Color Index: %d", this->mLsd->BackgroundColorIndex);
     Debug::Print("\tPixel Aspect Ratio: %d", this->mLsd->PixelAspectRatio);
 
-    if (this->mLsd->Packed >> LSDMask::GlobalColorTable) {
+    if (this->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) {
         Debug::Print("[Global Color Table]");
         Debug::Print("\tSize: %d", this->mGctd->SizeInLSD);
         Debug::Print("\tNumber of Colors: %d", this->mGctd->NumberOfColors);

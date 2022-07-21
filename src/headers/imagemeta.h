@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <vector>
-#include "common.h"
 
 #define EXTENSION_INTRODUCER        0x21
 #define EXTENSION_TERMINATOR        0x00
@@ -12,7 +11,6 @@
 #define TRAILER                     0x3B
 
 #define TRANSPRENT_CHAR             " "
-
 
 struct ImageDescriptor {
     uint8_t     Seperator;
@@ -29,16 +27,16 @@ struct ImageDescriptor {
         6-8 : Local Color Table Size
     */
     uint8_t     Packed;
-} PACKED;
+} __attribute__((packed));
 
 struct LocalColorTable {
     // TODO
-} PACKED;
+} __attribute__((packed));
 
 struct ImageDataHeader {
     uint8_t LZWMinimum;
     uint8_t FollowSize;
-} PACKED;
+} __attribute__((packed));
 
 struct SubBlock {
     uint8_t     FollowSize;
@@ -48,7 +46,7 @@ struct SubBlock {
 struct ExtensionHeader {
     uint8_t Introducer;
     uint8_t Label;
-} PACKED;
+} __attribute__((packed));
 
 struct GraphicsControlExtension {
     ExtensionHeader Header;
@@ -65,7 +63,7 @@ struct GraphicsControlExtension {
     uint16_t        DelayTime;
     uint8_t         TransparentColorIndex;
     uint8_t         BlockTerminator; // Always 0x00
-} PACKED;
+} __attribute__((packed));
 
 struct PlainTextExtension {
     ExtensionHeader Header;
@@ -94,33 +92,24 @@ struct ImageExtensions {
     CommentExtension*           Comment;
 };
 
-namespace ImgDescMask
-{
-    enum {
-        LocalColorTable = 7,
-        Interlace       = 6,
-        IMGSort         = 5, // Sort flag
-        IMGSize         = 0, // Size of Local Color Table
-    };
-}
+enum class ImgDescMask : uint8_t {
+    LocalColorTable = 7,
+    Interlace       = 6,
+    IMGSort         = 5, // Sort flag
+    IMGSize         = 0, // Size of Local Color Table
+};
 
-namespace ExtensionTypes
-{
-    enum { 
-        PlainText       = 0x01,
-        GraphicsControl = 0xF9,
-        Comment         = 0xFE,
-        Application     = 0xFF,
-    };
-}
+enum class ExtensionTypes : uint8_t {
+    PlainText       = 0x01,
+    GraphicsControl = 0xF9,
+    Comment         = 0xFE,
+    Application     = 0xFF,
+};
 
-namespace GCEMask
-{
-    enum {
-        Disposal            = 2,
-        UserInput           = 1,
-        TransparentColor    = 0 
-    };
-}
+enum class GCEMask : uint8_t {
+    Disposal            = 2,
+    UserInput           = 1,
+    TransparentColor    = 0 
+};
 
 #endif // _IMAGE_META_H

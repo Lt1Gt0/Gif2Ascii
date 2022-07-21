@@ -21,17 +21,21 @@ namespace Draw
         // Check if terminal supports colors 
         if (has_colors() == TRUE) {
             // If the GIF has a GCT then load the color map to the gct
-            if ((gif->mLsd->Packed >> LSDMask::GlobalColorTable) & 0x01)
+            if ((gif->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) & 0x01) {
+                start_color();
                 InitializeColorMap(gif->mColorTable, gif->mGctd->NumberOfColors); 
+            }
         }
         
         clear();
     }
 
-    void InitializeColorMap(Color* colorTable, int colorTableSize) 
+    void InitializeColorMap(const Color* colorTable, int colorTableSize) 
     {  
-        for (int i = 0; i < colorTableSize; i++) {
-            init_color(i, colorTable[i].Red, colorTable[i].Green, colorTable[i].Blue); 
+        reset_color_pairs();
+        for (int pair = 0, color = 0; pair < colorTableSize; pair++, color++) {
+            init_extended_color(color, colorTable[color].Red, colorTable[color].Green, colorTable[color].Blue); 
+            init_extended_pair(pair, color, COLOR_BLACK);
         } 
     }
 
@@ -77,7 +81,15 @@ namespace Draw
                         addstr(TRANSPRENT_CHAR); 
                     } else {
                         Color color = gif->mColorTable[(int)c];
+                       
+                        //int cursColor = (int)c;
+                        //init_color(cursColor, color.Red, color.Green, color.Blue);
+                        //init_pair(cursColor, cursColor, COLOR_BLACK);
+
+                        attron(COLOR_PAIR(int(c)));
+                        //chgat(1, A_NORMAL, c, NULL);
                         addch(ColorToChar(charMap, color));
+                        attron(COLOR_PAIR(int(c)));
                     }
  
                     col++;

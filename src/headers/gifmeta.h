@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <vector>
-#include "common.h"
 
 #define GIF_MAGIC_0 "GIF87a"
 #define GIF_MAGIC_1 "GIF89a"
@@ -30,13 +29,13 @@ struct LogicalScreenDescriptor {
     uint8_t     Packed;
     uint8_t     BackgroundColorIndex;
     uint8_t     PixelAspectRatio;
-} PACKED;
+} __attribute__((packed));
 
 struct GlobalColorTableDescriptor {
     uint8_t     SizeInLSD;
     uint16_t    NumberOfColors;
     uint16_t    ByteLegth;
-} PACKED;
+} __attribute__((packed));
 
 struct Color {
     uint8_t Red;
@@ -45,14 +44,11 @@ struct Color {
 };
 
 
-namespace LSDMask 
-{
-    enum {
-        GlobalColorTable    = 7,
-        ColorResolution     = 4,
-        Sort             = 3, // Sort flag
-        Size             = 0, // Size of Global Color Table
-    };
-}
+enum class LSDMask : uint8_t {
+    GlobalColorTable    = 0x07,
+    ColorResolution     = 0x04,
+    Sort                = 0x03, // Sort flag
+    Size                = 0x00, // Size of Global Color Table
+};
 
 #endif // _GIF_META_H

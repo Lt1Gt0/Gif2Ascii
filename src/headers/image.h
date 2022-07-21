@@ -39,8 +39,8 @@ class Image
 
         // Different Drawing behaviors based off Disposal Methods
         void DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
-        void RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap);
-        void RestoreToPrevState(std::string* rasterData, std::vector<char>* pixMap, std::vector<char>* prevPixMap);
+        void RestoreCanvasToBG(std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
+        void RestoreToPrevState(std::vector<char>* pixMap, std::vector<char>* prevPixMap);
         
         void LoadExtension(ExtensionHeader* header);
         

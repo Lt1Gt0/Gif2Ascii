@@ -21,7 +21,7 @@ namespace Draw
      * the color table your gif generated
      */
     void Initialize(GIF* gif);
-    void InitializeColorMap(Color* colorTable, int colorTableSize);
+    void InitializeColorMap(const Color* colorTable, int colorTableSize);
     
     void LoopFrames(GIF* gif);
     char ColorToChar(const char* charMap, const Color& color);

@@ -26,7 +26,7 @@ std::string Image::LoadImageData()
     fread(this->mDescriptor, sizeof(uint8_t), sizeof(ImageDescriptor), this->mFile);
 
     // TODO - Add support for LCT in GIFS that require it
-    if ((this->mDescriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1)
+    if ((this->mDescriptor->Packed >> (uint8_t)ImgDescMask::LocalColorTable) & 0x1)
         LOG_INFO << "Loading Local Color Table" << std::endl;
     else
         LOG_INFO << "Local Color Table flag not set" << std::endl;
@@ -106,7 +106,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     fseek(this->mFile, -2, SEEK_CUR);
 
     switch (header->Label) {
-        case ExtensionTypes::PlainText:
+        case (uint8_t)ExtensionTypes::PlainText:
         {
             LOG_INFO << "Loading plain text extension" << std::endl;
 
@@ -123,7 +123,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "End of plain text extension" << std::endl;
             break;
         }
-        case ExtensionTypes::GraphicsControl:
+        case (uint8_t)ExtensionTypes::GraphicsControl:
         {
             LOG_INFO << "Loading graphics control extension" << std::endl;
 
@@ -132,7 +132,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             fread(this->mExtensions->GraphicsControl, sizeof(uint8_t), sizeof(GraphicsControlExtension), this->mFile);
             
             // Check for transparency
-            if ((this->mExtensions->GraphicsControl->Packed >> GCEMask::TransparentColor) & 0x01) {
+            if ((this->mExtensions->GraphicsControl->Packed >> (uint8_t)GCEMask::TransparentColor) & 0x01) {
                 this->mTransparent = true;
                 this->mTransparentColorIndex = this->mExtensions->GraphicsControl->TransparentColorIndex;
 
@@ -145,7 +145,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "End of graphics control extension" << std::endl;
              break;
         }
-        case ExtensionTypes::Comment:
+        case (uint8_t)ExtensionTypes::Comment:
         {
             LOG_INFO << "Loading comment extension" << std::endl;
 
@@ -163,7 +163,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "End of comment extension" << std::endl;
             break;
         }
-        case ExtensionTypes::Application:
+        case (uint8_t)ExtensionTypes::Application:
         {
             LOG_INFO << "Loading application extension" << std::endl;
 
@@ -202,7 +202,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
 {
     // Because each gif can have a different disposal method for different frames (according to GIF89a)
     // it is best to handle each disposal method instread of printing the decompressed codestream directly
-    int disposalMethod = ((this->mExtensions->GraphicsControl->Packed >> GCEMask::Disposal) & 0x07);
+    int disposalMethod = ((this->mExtensions->GraphicsControl->Packed >> (uint8_t)GCEMask::Disposal) & 0x07);
     switch (disposalMethod) {
     case 0:
         break;
@@ -210,10 +210,10 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
         DrawOverImage(rasterData, pixMap, lsd);
         break;
     case 2:
-        RestoreCanvasToBG(rasterData, pixMap);
+        RestoreCanvasToBG(pixMap, lsd);
         break;
     case 3:
-        RestoreToPrevState(rasterData, pixMap, prevPixMap);
+        RestoreToPrevState(pixMap, prevPixMap);
         break;
     case 4:
     case 5:
@@ -221,7 +221,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
     case 7:
         break;
     default:
-        ErrorHandler::err_n_die("Undefined Disposal Method: %d\n", disposalMethod);
+        err_n_die("Undefined Disposal Method: %d\n", disposalMethod);
         break;
     }
 }
@@ -242,15 +242,24 @@ void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, 
     }
 }
 
-void Image::RestoreCanvasToBG(std::string* rasterData, std::vector<char>* pixelMap)
+void Image::RestoreCanvasToBG(std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
 {
     LOG_INFO << "Restore canvas to background" << std::endl;
+    std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mColorTableSize);
+
+    int offset;
+    for (int row = 0; row < lsd->Height; row++ ) {
+        for (int col = 0; col < lsd->Width; col++) {
+            offset = ((row + this->mDescriptor->Top) * lsd->Width) + (col + this->mDescriptor->Left);
+            pixelMap->at(offset) = codeTable[lsd->BackgroundColorIndex][0]; 
+        }
+    } 
 }
 
-void Image::RestoreToPrevState(std::string* rasterData, std::vector<char>* pixMap, std::vector<char>* prevPixMap)
+void Image::RestoreToPrevState(std::vector<char>* pixMap, std::vector<char>* prevPixMap)
 {
     LOG_INFO << "Restore canvas to previous state" << std::endl;
-    pixMap = prevPixMap;
+    *pixMap = *prevPixMap;
 }
 
 void Image::PrintDescriptor()
@@ -261,10 +270,10 @@ void Image::PrintDescriptor()
     Debug::Print("Image Top: %d", this->mDescriptor->Top);
     Debug::Print("Image Width: %d", this->mDescriptor->Width);
     Debug::Print("Image Height: %d", this->mDescriptor->Height);
-    Debug::Print("Local Color Table Flag: %d", (this->mDescriptor->Packed >> ImgDescMask::LocalColorTable) & 0x1);
-    Debug::Print("Interlace Flag: %d", (this->mDescriptor->Packed >> ImgDescMask::Interlace) & 0x1);
-    Debug::Print("Sort Flag: %d", (this->mDescriptor->Packed >> ImgDescMask::IMGSort) & 0x1);
-    Debug::Print("Size of Local Color Table: %d", (this->mDescriptor->Packed >> ImgDescMask::IMGSize) & 0x7);
+    Debug::Print("Local Color Table Flag: %d", (this->mDescriptor->Packed >> (uint8_t)ImgDescMask::LocalColorTable) & 0x1);
+    Debug::Print("Interlace Flag: %d", (this->mDescriptor->Packed >> (uint8_t)ImgDescMask::Interlace) & 0x1);
+    Debug::Print("Sort Flag: %d", (this->mDescriptor->Packed >> (uint8_t)ImgDescMask::IMGSort) & 0x1);
+    Debug::Print("Size of Local Color Table: %d", (this->mDescriptor->Packed >> (uint8_t)ImgDescMask::IMGSize) & 0x7);
     Debug::Print("--------------------------------");
 }
 
