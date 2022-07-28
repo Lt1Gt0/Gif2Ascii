@@ -29,9 +29,9 @@ int main(int argc, char** argv)
     else
         LOG_SUCCESS << "Opened [" << filepath << "]" << std::endl;
 
-    GIF* gif = new GIF(fp);
+    GIF gif = GIF(fp);
     LOG_INFO << "Reading GIF Information" << std::endl;
-    gif->Read();
+    gif.Read();
 
     // Setup drawing procdure and display frame data
     Draw::Initialize(gif);

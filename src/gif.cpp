@@ -21,7 +21,7 @@ GIF::GIF(FILE* _fp)
     fseek(this->mFile, 0, SEEK_END);
     this->mFilesize = ftell(this->mFile);
     rewind(this->mFile);
-    LOG_INFO << "Total file size:" << (this->mFilesize / 1024) << "kB" << std::endl;
+    LOG_INFO << "Total file size: " << (this->mFilesize / 1024) << "kB" << std::endl;
    
     // Initialize class members
     this->mHeader = new GifHeader;
@@ -59,7 +59,7 @@ void GIF::LoadLSD()
 {
     if (!this->mHeaderInitialized) {
         LOG_ERROR << "Attempted to intialize Logical Screen Descriptor before header" << std::endl;
-        return;
+        throw unintialized_header;
     }
 
     LOG_INFO << "Attempting to load Logical Screen Descriptor" << std::endl;
@@ -100,12 +100,12 @@ void GIF::GenerateFrameMap()
 {
     if (!this->mHeaderInitialized) {
         LOG_ERROR << "Attempted to intialize frame map before header" << std::endl;
-        return;
+        throw unintialized_header;
     }
     
     if (!this->mLSDInitialized) {
         LOG_ERROR << "Attempted to intialize frame map before Logical Screen Descriptor" << std::endl;
-        return;
+        throw uninitialized_lsd;
     }
 
     LOG_INFO << "Generating Frame Map" << std::endl;
@@ -206,3 +206,9 @@ void GIF::PrintColorTable()
     }
     Debug::Print("----------------------------------");
 }
+
+/* ---------- EXCEPTIONS ---------- */
+//const char* UninitializedHeader::what() const throw()
+//{
+    //return "Uninitialized Header";
+//}

@@ -11,7 +11,7 @@
 
 namespace Draw
 {
-    void Initialize(GIF* gif)
+    void Initialize(const GIF& gif)
     {         
         LOG_INFO << "Initializing gif drawing" << std::endl;
         
@@ -21,9 +21,9 @@ namespace Draw
         // Check if terminal supports colors 
         if (has_colors() == TRUE) {
             // If the GIF has a GCT then load the color map to the gct
-            if ((gif->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) & 0x01) {
+            if ((gif.mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) & 0x01) {
                 start_color();
-                InitializeColorMap(gif->mColorTable, gif->mGctd->NumberOfColors); 
+                InitializeColorMap(gif.mColorTable, gif.mGctd->NumberOfColors); 
             }
         }
         
@@ -39,12 +39,12 @@ namespace Draw
         } 
     }
 
-    void LoopFrames(GIF* gif)
+    void LoopFrames(const GIF& gif)
     {
         // This is where things get a bit more confusing and will most likely be completely
         // reworked to make more sense
  
-        std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mGctd->NumberOfColors);
+        std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif.mGctd->NumberOfColors);
  
         // standard char map for grayscale ascii color represnetation
         const char* charMap = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'.";
@@ -54,14 +54,14 @@ namespace Draw
             int frameIdx = 0;
  
             // Go through each frame in the frame map
-            for (std::vector<char> frame : gif->mFrameMap) {
+            for (std::vector<char> frame : gif.mFrameMap) {
                 
                 // Initialize variables for Image Display
                 int col = 0;
  
                 // Go through each code in the frame
                 for (char c : frame) {
-                    if (col >= gif->mLsd->Width) {
+                    if (col >= gif.mLsd->Width) {
                         col = 0;
                         printw("\n");
                     }
@@ -77,17 +77,12 @@ namespace Draw
  
                     // Check to see if the transparency flag is set in the image if so
                     // check if the current code is the transparency color index
-                    if (gif->mImageData[frameIdx].mTransparent && (int)c == gif->mImageData[frameIdx].mTransparentColorIndex) {
+                    if (gif.mImageData[frameIdx].mTransparent && (int)c == gif.mImageData[frameIdx].mTransparentColorIndex) {
                         addstr(TRANSPRENT_CHAR); 
                     } else {
-                        Color color = gif->mColorTable[(int)c];
-                       
-                        //int cursColor = (int)c;
-                        //init_color(cursColor, color.Red, color.Green, color.Blue);
-                        //init_pair(cursColor, cursColor, COLOR_BLACK);
+                        Color color = gif.mColorTable[(int)c];
 
                         attron(COLOR_PAIR(int(c)));
-                        //chgat(1, A_NORMAL, c, NULL);
                         addch(ColorToChar(charMap, color));
                         attron(COLOR_PAIR(int(c)));
                     }
@@ -95,7 +90,7 @@ namespace Draw
                     col++;
                 }
  
-                std::this_thread::sleep_for(std::chrono::milliseconds(gif->mImageData[frameIdx].mExtensions->GraphicsControl->DelayTime * 10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(gif.mImageData[frameIdx].mExtensions->GraphicsControl->DelayTime * 10));
  
                 frameIdx++;
                 refresh();

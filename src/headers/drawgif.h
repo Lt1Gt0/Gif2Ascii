@@ -20,10 +20,10 @@ namespace Draw
      * can support colors from ncurses, you can pas the size of 
      * the color table your gif generated
      */
-    void Initialize(GIF* gif);
+    void Initialize(const GIF& gif);
     void InitializeColorMap(const Color* colorTable, int colorTableSize);
     
-    void LoopFrames(GIF* gif);
+    void LoopFrames(const GIF&  gif);
     char ColorToChar(const char* charMap, const Color& color);
 
     void End();
