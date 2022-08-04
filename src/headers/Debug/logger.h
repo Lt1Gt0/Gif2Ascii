@@ -108,7 +108,6 @@ class Logger
             return dateTimeStr + logLevelText;
         }
 
-    
     private:
         std::string mFilename;
         std::ofstream mStream;

@@ -20,8 +20,14 @@ GifDisplay::~GifDisplay() {}
 
 void GifDisplay::LoopFrames()
 {
-    signal(SIGINT, SignalHandler);
-    std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mGIF->mGctd->NumberOfColors);
+    /* TODO
+     * Because of the system("clear") calls, all of the gif meta is
+     * destroyed, if I want to see the gif meta I should try to write
+     * it into a seperate file before drawing
+     */
+
+    signal(SIGINT, this->mGIF->SigIntHandler);
+    std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mGIF->mGctd.NumberOfColors);
     
     system("clear");
     while (true) {
@@ -51,13 +57,13 @@ void GifDisplay::LoopFrames()
                 fprintf(stdout, "\x1b[0m");
                 col++;
 
-                if (col >= this->mGIF->mLsd->Width) {
+                if (col >= this->mGIF->mLsd.Width) {
                     col = 0;
                     fprintf(stdout, "\n"); 
                 } 
             } 
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(this->mGIF->mImageData[frameIdx].mExtensions->GraphicsControl->DelayTime * 10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(this->mGIF->mImageData[frameIdx].mExtensions.GraphicsControl.DelayTime * 10));
             frameIdx++;
             system("clear");
         } 
@@ -70,10 +76,4 @@ char GifDisplay::ColorToChar(const Color& color)
     float brightness = (0.2126 * color.Red + 0.7152 * color.Green * 0.0722 * color.Blue);
     float chrIdx = brightness / (255.0 / strlen(this->mCharMap));
     return this->mCharMap[(int)floor(chrIdx)]; 
-}
-
-void GifDisplay::SignalHandler(int sig)
-{
-    system("clear");        
-    exit(0);
 }

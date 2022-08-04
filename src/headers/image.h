@@ -12,9 +12,9 @@
 class Image 
 {            
     public:
-        ImageDescriptor* mDescriptor;
-        ImageDataHeader* mHeader;
-        ImageExtensions* mExtensions;
+        ImageDescriptor mDescriptor;
+        ImageDataHeader mHeader;
+        ImageExtensions mExtensions;
         Color* mColorTable;
         std::vector<uint8_t> mData;
 
@@ -41,7 +41,7 @@ class Image
         void RestoreCanvasToBG(std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd);
         void RestoreToPrevState(std::vector<char>* pixMap, std::vector<char>* prevPixMap);
         
-        void LoadExtension(ExtensionHeader* header);
+        void LoadExtension(const ExtensionHeader& headerCheck);
         
         // Debugging prints
         void PrintDescriptor();

@@ -28,8 +28,8 @@ GIF::GIF(const char* _filepath)
     LOG_INFO << "Total file size: " << (this->mFilesize / 1024) << "kB" << std::endl;
    
     // Initialize class members
-    this->mHeader = new GifHeader;
-    this->mLsd = new LogicalScreenDescriptor;
+    this->mHeader = {};
+    this->mLsd = {};
     this->mImageData = std::vector<Image>();
     this->mFrameMap = std::vector<std::vector<char>>();
     this->mPixelMap = std::vector<char>();
@@ -50,7 +50,7 @@ void GIF::Read()
 void GIF::LoadHeader()
 {
     // Load the GIF header into memory
-    fread(this->mHeader, sizeof(uint8_t), sizeof(GifHeader), this->mFile);
+    fread(&this->mHeader, sizeof(uint8_t), sizeof(GifHeader), this->mFile);
 
     // Check for a valid GIF Header
     if (!ValidHeader())
@@ -69,21 +69,21 @@ void GIF::LoadLSD()
     LOG_INFO << "Attempting to load Logical Screen Descriptor" << std::endl;
 
     //Load the LSD From GIF File 
-    fread(this->mLsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), this->mFile);
+    fread(&this->mLsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), this->mFile);
 
     // Check to see if the GCT flag is set
-    if (this->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) {
+    if (this->mLsd.Packed >> (int)LSDMask::GlobalColorTable) {
         LOG_INFO << "GCTD Present - Loading GCTD" << std::endl;
 
         // Load the Global Color Table Descriptor Data
-        this->mGctd = new GlobalColorTableDescriptor;
-        this->mGctd->SizeInLSD = (this->mLsd->Packed >> (uint8_t)LSDMask::Size) & 0x07;
-        this->mGctd->NumberOfColors = pow(2, this->mGctd->SizeInLSD + 1);
-        this->mGctd->ByteLegth = 3 * this->mGctd->NumberOfColors;
+        this->mGctd = {};
+        this->mGctd.SizeInLSD = (this->mLsd.Packed >> (uint8_t)LSDMask::Size) & 0x07;
+        this->mGctd.NumberOfColors = pow(2, this->mGctd.SizeInLSD + 1);
+        this->mGctd.ByteLegth = 3 * this->mGctd.NumberOfColors;
 
         // Generate the GCT from each color present in file
-        this->mColorTable = new Color[this->mGctd->NumberOfColors];
-        for (int i = 0; i < this->mGctd->NumberOfColors; i++) {
+        this->mColorTable = new Color[this->mGctd.NumberOfColors];
+        for (int i = 0; i < this->mGctd.NumberOfColors; i++) {
             Color color = NULL_COLOR;
             fread(&color, sizeof(uint8_t), COLOR_SIZE, this->mFile);
             this->mColorTable[i] = color; 
@@ -114,18 +114,18 @@ void GIF::GenerateFrameMap()
     // The pixel map will be initialized as a single vector
     // to mimic a two dimensional array, elements are accessed like so
     // (char) pixel = PixelMap.at(ROW * width) + COL
-    this->mPixelMap.resize(this->mLsd->Width * this->mLsd->Height);
+    this->mPixelMap.resize(this->mLsd.Width * this->mLsd.Height);
 
     // Initialize pixel map with blank characters
-    for (int row = 0; row < this->mLsd->Height; row++) {
-        for (int col = 0; col < this->mLsd->Width; col++) {
-            this->mPixelMap.at((row * this->mLsd->Width) + col) = ' ';
+    for (int row = 0; row < this->mLsd.Height; row++) {
+        for (int col = 0; col < this->mLsd.Width; col++) {
+            this->mPixelMap.at((row * this->mLsd.Width) + col) = ' ';
         }
     }
 
     // Build up each frame for the gif
     while (true) {
-        Image img = Image(this->mFile, this->mColorTable, this->mGctd->NumberOfColors);
+        Image img = Image(this->mFile, this->mColorTable, this->mGctd.NumberOfColors);
 
         // Load Image Extenstion information before proceeding with parsing image data
         img.CheckExtensions();
@@ -135,7 +135,7 @@ void GIF::GenerateFrameMap()
         std::string rasterData = img.LoadImageData();
 
         this->mPrevPixelMap = this->mPixelMap; 
-        img.UpdatePixelMap(&this->mPixelMap, &this->mPrevPixelMap, &rasterData, this->mLsd);
+        img.UpdatePixelMap(&this->mPixelMap, &this->mPrevPixelMap, &rasterData, &this->mLsd);
         this->mFrameMap.push_back(this->mPixelMap);
         this->mImageData.push_back(img);
 
@@ -160,9 +160,14 @@ void GIF::GenerateFrameMap()
 
 bool GIF::ValidHeader()
 {
-    for (int i = 0; i < 6; i++) {
-        if (this->mHeader->Signature[i] != GIF_MAGIC_0[i]
-         && this->mHeader->Signature[i] != GIF_MAGIC_1[i]) {
+    for (int i = 0; i < 3; i++) {
+        if (this->mHeader.Signature[i] != gifSignature[i])
+           return false; 
+    }
+
+    for (int i = 0; i < 3; i++) {
+        if (this->mHeader.Version[i] != gif87a[i]
+         && this->mHeader.Version[i] != gif89a[i]) {
             return false;
         } 
     }
@@ -170,36 +175,42 @@ bool GIF::ValidHeader()
     return true;
 }
 
+void GIF::SigIntHandler(int sig)
+{
+    system("clear");        
+    exit(0);
+}
+
 void GIF::PrintHeaderInfo()
 {   
     Debug::Print("\n------- GIF INFO -------");
 
     Debug::Print("[Header]");
-    Debug::Print("\tSignature: %s", this->mHeader->Signature);
-    Debug::Print("\tVersion: %s", this->mHeader->Version);
+    Debug::Print("\tSignature: %s", this->mHeader.Signature);
+    Debug::Print("\tVersion: %s", this->mHeader.Version);
 
     Debug::Print("[Logical Screen Descriptor]");
-    Debug::Print("\tWidth: %d", this->mLsd->Width);
-    Debug::Print("\tHeight: %d", this->mLsd->Height);
-    Debug::Print("\tGlobal Color Table Flag: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) & 0x1);
-    Debug::Print("\tColor Resolution: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::ColorResolution) & 0x07);
-    Debug::Print("\tSort Flag: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::Sort) & 0x01);
-    Debug::Print("\tGlobal Color Table Size: %d", (this->mLsd->Packed >> (uint8_t)LSDMask::Size) & 0x07);
-    Debug::Print("\tBackground Color Index: %d", this->mLsd->BackgroundColorIndex);
-    Debug::Print("\tPixel Aspect Ratio: %d", this->mLsd->PixelAspectRatio);
+    Debug::Print("\tWidth: %d", this->mLsd.Width);
+    Debug::Print("\tHeight: %d", this->mLsd.Height);
+    Debug::Print("\tGlobal Color Table Flag: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::GlobalColorTable) & 0x1);
+    Debug::Print("\tColor Resolution: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::ColorResolution) & 0x07);
+    Debug::Print("\tSort Flag: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::Sort) & 0x01);
+    Debug::Print("\tGlobal Color Table Size: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::Size) & 0x07);
+    Debug::Print("\tBackground Color Index: %d", this->mLsd.BackgroundColorIndex);
+    Debug::Print("\tPixel Aspect Ratio: %d", this->mLsd.PixelAspectRatio);
 
-    if (this->mLsd->Packed >> (uint8_t)LSDMask::GlobalColorTable) {
+    if (this->mLsd.Packed >> (uint8_t)LSDMask::GlobalColorTable) {
         Debug::Print("[Global Color Table]");
-        Debug::Print("\tSize: %d", this->mGctd->SizeInLSD);
-        Debug::Print("\tNumber of Colors: %d", this->mGctd->NumberOfColors);
-        Debug::Print("\tSize in bytes: %d", this->mGctd->ByteLegth);
+        Debug::Print("\tSize: %d", this->mGctd.SizeInLSD);
+        Debug::Print("\tNumber of Colors: %d", this->mGctd.NumberOfColors);
+        Debug::Print("\tSize in bytes: %d", this->mGctd.ByteLegth);
     }
 }
 
 void GIF::PrintColorTable()
 {
     Debug::Print("\n------- Global Color Table -------");
-    for (int i = 0; i < this->mGctd->NumberOfColors; i++) {
+    for (int i = 0; i < this->mGctd.NumberOfColors; i++) {
         Debug::Print("Red: %X", this->mColorTable[i].Red);
         Debug::Print("Green: %X", this->mColorTable[i].Green);
         Debug::Print("Blue: %X\n", this->mColorTable[i].Blue);

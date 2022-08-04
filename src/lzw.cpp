@@ -6,7 +6,7 @@
 
 namespace LZW
 {
-    string Decompress(ImageDataHeader* imgHeader, uint8_t colorTableSize, vector<uint8_t> codestream)
+    string Decompress(const ImageDataHeader& imgHeader, const uint8_t colorTableSize, vector<uint8_t> codestream)
     {
         if (codestream.size() <= 0)
             return "";
@@ -19,7 +19,7 @@ namespace LZW
 
         int offset, newCode, oldCode, codesize, i;
         offset = 0, i = 0;
-        codesize = imgHeader->LZWMinimum + 1;
+        codesize = imgHeader.LZWMinimum + 1;
 
         newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
         offset += codesize;
@@ -81,7 +81,7 @@ namespace LZW
         return charstream;
     }
 
-    unordered_map<int, string> InitializeCodeTable(uint8_t colorTableSize)
+    unordered_map<int, string> InitializeCodeTable(const uint8_t colorTableSize)
     {
         unordered_map<int, string> table;
 

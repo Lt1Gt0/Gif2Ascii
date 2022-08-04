@@ -104,10 +104,10 @@ struct CommentExtension {
 };
 
 struct ImageExtensions {
-    GraphicsControlExtension*   GraphicsControl;
-    PlainTextExtension*         PlainText;
-    ApplicationExtension*       Application;
-    CommentExtension*           Comment;
+    GraphicsControlExtension    GraphicsControl;
+    PlainTextExtension          PlainText;
+    ApplicationExtension        Application;
+    CommentExtension            Comment;
 };
 
 #endif // _IMAGE_META_H

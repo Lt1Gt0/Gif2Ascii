@@ -5,10 +5,18 @@
 #include <stdint.h>
 #include <vector>
 
-#define GIF_MAGIC_0 "GIF87a"
-#define GIF_MAGIC_1 "GIF89a"
+constexpr char gifSignature[3]  {'G', 'I', 'F'};
+constexpr char gif87a[3]        {'8', '7', 'a'};
+constexpr char gif89a[3]        {'8', '9', 'a'};
 #define NULL_COLOR  {0, 0, 0}
 #define COLOR_SIZE  3
+
+enum class LSDMask : uint8_t {
+    GlobalColorTable    = 0x07,
+    ColorResolution     = 0x04,
+    Sort                = 0x03, // Sort flag
+    Size                = 0x00, // Size of Global Color Table
+};
 
 struct GifHeader {
     char Signature[3];
@@ -40,13 +48,6 @@ struct Color {
     uint8_t Red;
     uint8_t Blue;
     uint8_t Green;
-};
-
-enum class LSDMask : uint8_t {
-    GlobalColorTable    = 0x07,
-    ColorResolution     = 0x04,
-    Sort                = 0x03, // Sort flag
-    Size                = 0x00, // Size of Global Color Table
 };
 
 #endif // _GIF_META_H

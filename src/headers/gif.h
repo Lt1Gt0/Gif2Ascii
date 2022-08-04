@@ -13,9 +13,9 @@ class GIF
     public:
         FILE* mFile;
         
-        GifHeader* mHeader;
-        LogicalScreenDescriptor* mLsd;
-        GlobalColorTableDescriptor* mGctd;
+        GifHeader mHeader;
+        LogicalScreenDescriptor mLsd;
+        GlobalColorTableDescriptor mGctd;
         std::vector<Image> mImageData;
         Color* mColorTable; // If the flag is present then the gct will be filled
         std::vector<std::vector<char>> mFrameMap;
@@ -27,6 +27,7 @@ class GIF
          * Read each header of the file into their respective members
          */ 
         void Read();
+        static void SigIntHandler(int sig);
 
     private:
         size_t mFilesize;

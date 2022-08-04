@@ -15,7 +15,7 @@
 namespace LZW 
 {
     using namespace std;
-    string Decompress(ImageDataHeader* imgHeader, uint8_t colorTableSize, vector<uint8_t> codestream);
+    string Decompress(const ImageDataHeader& imgHeader, const uint8_t colorTableSize, vector<uint8_t> codestream);
 
     /**
      * Initialize a code table based off the size of a given color table
@@ -23,7 +23,7 @@ namespace LZW
      * @param colorTableSize
      * @return std::unordered_map<int, std::string> Code Table
      */
-    unordered_map<int, string> InitializeCodeTable(uint8_t colorTableSize);
+    unordered_map<int, string> InitializeCodeTable(const uint8_t colorTableSize);
 }
 
 #endif // _LZW_H

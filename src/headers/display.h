@@ -4,7 +4,7 @@
 
 #include "gif.h"
 
-class GifDisplay
+class GifDisplay 
 {
     public:
         GifDisplay(const GIF* _gif);
@@ -14,9 +14,6 @@ class GifDisplay
 
     private:
         char ColorToChar(const Color& color);
-
-        // Signal Handling
-        static void SignalHandler(int sig);
         
     private:
         const GIF* mGIF;
