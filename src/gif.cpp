@@ -2,7 +2,6 @@
 #include "gifmeta.h"
 #include "imagemeta.h"
 #include "lzw.h"
-#include "errorhandler.h"
 #include "Debug/debug.h"
 #include "Debug/logger.h"
 
@@ -48,7 +47,7 @@ void GIF::LoadHeader()
 
     // Check for a valid GIF Header
     if (!ValidHeader())
-        err_n_die("Invalid GIF Format Header");
+        Debug::error(Severity::high, "GIF:", "Invalid Format Header");
     else
         LOG_INFO << "Valid GIF Header" << std::endl;
 
@@ -57,10 +56,8 @@ void GIF::LoadHeader()
 
 void GIF::LoadLSD()
 {
-    if (!this->mHeaderInitialized) {
-        LOG_ERROR << "Attempted to intialize Logical Screen Descriptor before header" << std::endl;
-        throw unintialized_header;
-    }
+    if (!this->mHeaderInitialized)
+        Debug::error(Severity::medium, "GIF:", "Attempted to initialize frame map before header");
 
     LOG_INFO << "Attempting to load Logical Screen Descriptor" << std::endl;
 
@@ -98,15 +95,11 @@ void GIF::LoadLSD()
 
 void GIF::GenerateFrameMap()
 {
-    if (!this->mHeaderInitialized) {
-        LOG_ERROR << "Attempted to intialize frame map before header" << std::endl;
-        throw unintialized_header;
-    }
+    if (!this->mHeaderInitialized)
+        Debug::error(Severity::medium, "GIF:", "Attempted to initialize frame map before header");
     
-    if (!this->mLSDInitialized) {
-        LOG_ERROR << "Attempted to intialize frame map before Logical Screen Descriptor" << std::endl;
-        throw uninitialized_lsd;
-    }
+    if (!this->mLSDInitialized)
+        Debug::error(Severity::medium, "GIF:", "Attempted to initialize frame map before Logical Screen Descriptor");
 
     LOG_INFO << "Generating Frame Map" << std::endl;
     uint8_t nextByte;
@@ -206,9 +199,3 @@ void GIF::PrintColorTable()
     }
     Debug::Print("----------------------------------");
 }
-
-/* ---------- EXCEPTIONS ---------- */
-//const char* UninitializedHeader::what() const throw()
-//{
-    //return "Uninitialized Header";
-//}

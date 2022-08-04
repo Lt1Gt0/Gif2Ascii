@@ -81,7 +81,6 @@ namespace Draw
                         addstr(TRANSPRENT_CHAR); 
                     } else {
                         Color color = gif.mColorTable[(int)c];
-
                         attron(COLOR_PAIR(int(c)));
                         addch(ColorToChar(charMap, color));
                         attron(COLOR_PAIR(int(c)));

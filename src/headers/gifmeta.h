@@ -15,7 +15,6 @@ struct GifHeader {
     char Version[3];
 };
 
-
 struct LogicalScreenDescriptor {
     uint16_t    Width;
     uint16_t    Height;
@@ -42,7 +41,6 @@ struct Color {
     uint8_t Blue;
     uint8_t Green;
 };
-
 
 enum class LSDMask : uint8_t {
     GlobalColorTable    = 0x07,

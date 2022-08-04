@@ -1,6 +1,6 @@
 #include "gif.h"
-#include "drawgif.h"
-#include "errorhandler.h"
+//#include "drawgif.h"
+#include "display.h"
 #include "Debug/debug.h"
 #include "Debug/logger.h"
 
@@ -18,14 +18,14 @@ int main(int argc, char** argv)
     LOG_INIT("logs/", "info")
         
     if (argc < 2)
-        err_n_die("Usage: %s <filepath>", argv[0]);
+        Debug::error(Severity::high, "Usage:", "./bin/gif2Ascii <filepath>");
 
     // Attempt to load GIF
     const char* filepath = argv[1];
     FILE* fp = fopen(filepath, "rb");
 
     if (fp == NULL)
-        err_n_die("Error opening file [%s]", filepath);
+        Debug::error(Severity::high, "Error opening file:", filepath);
     else
         LOG_SUCCESS << "Opened [" << filepath << "]" << std::endl;
 
@@ -34,10 +34,11 @@ int main(int argc, char** argv)
     gif.Read();
 
     // Setup drawing procdure and display frame data
-    Draw::Initialize(gif);
-    Draw::LoopFrames(gif);
+    GifDisplay display = GifDisplay(&gif);
+    //Draw::Initialize(gif);
+    //Draw::LoopFrames(gif);
 
-    Draw::End();
+    //Draw::End();
     logger.Close();
     return 0;
 }

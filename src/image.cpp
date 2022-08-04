@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <unordered_map>
 #include "lzw.h"
-#include "errorhandler.h"
 #include "Debug/debug.h"
 #include "Debug/logger.h"
 
@@ -221,7 +220,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
     case 7:
         break;
     default:
-        err_n_die("Undefined Disposal Method: %d\n", disposalMethod);
+        Debug::error(Severity::medium, "Image:", "undefined disposal method -", disposalMethod);
         break;
     }
 }
@@ -248,8 +247,8 @@ void Image::RestoreCanvasToBG(std::vector<char>* pixelMap, LogicalScreenDescript
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mColorTableSize);
 
     int offset;
-    for (int row = 0; row < lsd->Height; row++ ) {
-        for (int col = 0; col < lsd->Width; col++) {
+    for (int row = 0; row < this->mDescriptor->Height; row++ ) {
+        for (int col = 0; col < this->mDescriptor->Left; col++) {
             offset = ((row + this->mDescriptor->Top) * lsd->Width) + (col + this->mDescriptor->Left);
             pixelMap->at(offset) = codeTable[lsd->BackgroundColorIndex][0]; 
         }

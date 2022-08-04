@@ -77,23 +77,6 @@ class GIF
         // Debug Prints
         void PrintHeaderInfo();
         void PrintColorTable();
-
-        /* ---------- EXCEPTIONS ---------- */
-        class UninitializedHeader : public std::exception
-        {
-            virtual const char* what() const throw()
-            {
-                return "Uninitialized Header"; 
-            } 
-        } unintialized_header; 
-
-        class UninitializedLSD : public std::exception
-        {
-            virtual const char* what() const throw()
-            {
-                return "Uninitialized Logical Screen Descriptor"; 
-            } 
-        } uninitialized_lsd;
 };
 
 #endif // _GIF_H
