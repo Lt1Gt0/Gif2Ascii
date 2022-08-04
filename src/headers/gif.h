@@ -8,12 +8,6 @@
 #include "gifmeta.h"
 #include "image.h"
 
-// U+0D9E ඞ
-// U+0DAC ඬ
-// U+0DB0 ධ
-// U+0E8F ຏ
-// U+0EA5 ລ
-
 class GIF 
 {
     public:
@@ -27,7 +21,7 @@ class GIF
         std::vector<std::vector<char>> mFrameMap;
 
     public:
-        GIF(FILE* _fp);
+        GIF(const char* _filepath);
        
         /** 
          * Read each header of the file into their respective members

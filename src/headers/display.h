@@ -14,10 +14,9 @@ class GifDisplay
 
     private:
         char ColorToChar(const Color& color);
-        // Initialize Color Map
-        // Color to char
-        // Loop frames
-        // end (destructor)
+
+        // Signal Handling
+        static void SignalHandler(int sig);
         
     private:
         const GIF* mGIF;

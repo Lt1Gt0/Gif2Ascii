@@ -12,9 +12,14 @@
 #include <unordered_map>
 #include <string.h>
 
-GIF::GIF(FILE* _fp)
+GIF::GIF(const char* _filepath)
 {
-    this->mFile = _fp;
+    this->mFile = fopen(_filepath, "rb");
+
+    if (this->mFile == NULL)
+        Debug::error(Severity::high, "Error opening file:", _filepath);
+    else
+        LOG_SUCCESS << "Opened [" << _filepath << "]" << std::endl;
 
     // Get the file size and restore the file pointer back to position 0
     fseek(this->mFile, 0, SEEK_END);
@@ -35,9 +40,11 @@ GIF::GIF(FILE* _fp)
 
 void GIF::Read()
 {
+    LOG_INFO << "Reading GIF Information" << std::endl;
     LoadHeader();
     LoadLSD();
     GenerateFrameMap();
+    LOG_SUCCESS << "Read GIF Information" << std::endl;
 }
 
 void GIF::LoadHeader()

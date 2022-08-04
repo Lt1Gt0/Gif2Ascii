@@ -2,7 +2,6 @@
 
 - [Gif2Ascii](#gif2ascii)
   - [About](#about)
-  - [Dependecies](#dependecies)
   - [Build info](#build-info)
   - [TODO](#todo)
 
@@ -13,14 +12,6 @@ Convert gif data into ascii characters
 __I did not use any external libraries for this project to help decode a GIF. I decided it would be fun to write my own implementation so in its current state it is very buggy__
 
 The whole concept behind this project was to turn the raster data stored inside of a gif into an ascii representation shown in a terminal window. (An idea I want to use for [sustext](https://github.com/Lt1Gt0/sustext) in the future)
-
-## Dependecies
-
-ncurse (used to display characters on the terminal with added colors)
-
-```bash
-pacman -S ncurses
-```
 
 ## Build info
 
@@ -42,7 +33,7 @@ To run the program
   __HIGH PRIORITY__
   - [ ] Support gif87a format
   - [ ] Frame display timing
-  - [ ] Correct ascii mappings according to colors
+  - [X] Correct ascii mappings according to colors
   - [ ] Transparency 
   - [ ] Move drawing frame data to seperate file for less confusion
 
@@ -50,7 +41,7 @@ To run the program
   - [ ] Dump gif information to seperate file for viewing (maybe)
   - [ ] Image scaling (fit size of terminal window as best as possible if needed)
   - [ ] Change display method to a web browser (could be set as a flag passed in upon unning the program)
-  - [ ] Display ascii characters with color attributes in the terminal window with ncurses
+  - [X] Display ascii characters with color attributes in the terminal window 
   
   __LOW PRIORITY__
   - [ ] Possible support for different unicode characters (could be set as a flag passed in upon running the program)

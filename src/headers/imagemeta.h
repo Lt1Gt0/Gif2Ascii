@@ -10,7 +10,25 @@
 #define IMAGE_DESCRIPTOR_SEPERATOR  0x2C
 #define TRAILER                     0x3B
 
-#define TRANSPRENT_CHAR             " "
+enum class ImgDescMask : uint8_t {
+    LocalColorTable = 7,
+    Interlace       = 6,
+    IMGSort         = 5, // Sort flag
+    IMGSize         = 0, // Size of Local Color Table
+};
+
+enum class ExtensionLabel : uint8_t {
+    PlainText       = 0x01,
+    GraphicsControl = 0xF9,
+    Comment         = 0xFE,
+    Application     = 0xFF,
+};
+
+enum class GCEMask : uint8_t {
+    Disposal            = 2,
+    UserInput           = 1,
+    TransparentColor    = 0 
+};
 
 struct ImageDescriptor {
     uint8_t     Seperator;
@@ -44,8 +62,8 @@ struct SubBlock {
 };
 
 struct ExtensionHeader {
-    uint8_t Introducer;
-    uint8_t Label;
+    uint8_t         Introducer;
+    ExtensionLabel  Label;
 } __attribute__((packed));
 
 struct GraphicsControlExtension {
@@ -90,26 +108,6 @@ struct ImageExtensions {
     PlainTextExtension*         PlainText;
     ApplicationExtension*       Application;
     CommentExtension*           Comment;
-};
-
-enum class ImgDescMask : uint8_t {
-    LocalColorTable = 7,
-    Interlace       = 6,
-    IMGSort         = 5, // Sort flag
-    IMGSize         = 0, // Size of Local Color Table
-};
-
-enum class ExtensionTypes : uint8_t {
-    PlainText       = 0x01,
-    GraphicsControl = 0xF9,
-    Comment         = 0xFE,
-    Application     = 0xFF,
-};
-
-enum class GCEMask : uint8_t {
-    Disposal            = 2,
-    UserInput           = 1,
-    TransparentColor    = 0 
 };
 
 #endif // _IMAGE_META_H

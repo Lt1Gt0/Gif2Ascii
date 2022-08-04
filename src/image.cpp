@@ -105,7 +105,7 @@ void Image::LoadExtension(ExtensionHeader* header)
     fseek(this->mFile, -2, SEEK_CUR);
 
     switch (header->Label) {
-        case (uint8_t)ExtensionTypes::PlainText:
+        case ExtensionLabel::PlainText:
         {
             LOG_INFO << "Loading plain text extension" << std::endl;
 
@@ -122,7 +122,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "End of plain text extension" << std::endl;
             break;
         }
-        case (uint8_t)ExtensionTypes::GraphicsControl:
+        case ExtensionLabel::GraphicsControl:
         {
             LOG_INFO << "Loading graphics control extension" << std::endl;
 
@@ -144,7 +144,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "End of graphics control extension" << std::endl;
              break;
         }
-        case (uint8_t)ExtensionTypes::Comment:
+        case ExtensionLabel::Comment:
         {
             LOG_INFO << "Loading comment extension" << std::endl;
 
@@ -162,7 +162,7 @@ void Image::LoadExtension(ExtensionHeader* header)
             LOG_INFO << "End of comment extension" << std::endl;
             break;
         }
-        case (uint8_t)ExtensionTypes::Application:
+        case ExtensionLabel::Application:
         {
             LOG_INFO << "Loading application extension" << std::endl;
 
@@ -190,7 +190,7 @@ void Image::LoadExtension(ExtensionHeader* header)
         }
         default:
         {
-            LOG_ERROR << "Recived invalid extension type [" << header->Label <<  "]" << std::endl;
+            LOG_ERROR << "Recived invalid extension type [" << (int)header->Label <<  "]" << std::endl;
             fseek(this->mFile, 2, SEEK_CUR); // Restore the file position to where it was after reading header
             break;
         }
@@ -228,7 +228,7 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
 void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
 {
     LOG_INFO << "Drawing over image" << std::endl;
-    int offset;
+    int offset = 0;
     int currentChar = 0;
     for (int row = 0; row < this->mDescriptor->Height; row++) {
         for (int col = 0; col < this->mDescriptor->Width; col++) {

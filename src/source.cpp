@@ -1,5 +1,4 @@
 #include "gif.h"
-//#include "drawgif.h"
 #include "display.h"
 #include "Debug/debug.h"
 #include "Debug/logger.h"
@@ -21,15 +20,7 @@ int main(int argc, char** argv)
         Debug::error(Severity::high, "Usage:", "./bin/gif2Ascii <filepath>");
 
     // Attempt to load GIF
-    const char* filepath = argv[1];
-    FILE* fp = fopen(filepath, "rb");
-
-    if (fp == NULL)
-        Debug::error(Severity::high, "Error opening file:", filepath);
-    else
-        LOG_SUCCESS << "Opened [" << filepath << "]" << std::endl;
-
-    GIF gif = GIF(fp);
+    GIF gif = GIF(argv[1]);
     LOG_INFO << "Reading GIF Information" << std::endl;
     gif.Read();
 
