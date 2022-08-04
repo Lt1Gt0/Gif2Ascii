@@ -35,10 +35,8 @@ int main(int argc, char** argv)
 
     // Setup drawing procdure and display frame data
     GifDisplay display = GifDisplay(&gif);
-    //Draw::Initialize(gif);
-    //Draw::LoopFrames(gif);
+    display.LoopFrames();
 
-    //Draw::End();
     logger.Close();
     return 0;
 }

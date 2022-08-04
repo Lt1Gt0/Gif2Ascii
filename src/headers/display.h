@@ -10,8 +10,10 @@ class GifDisplay
         GifDisplay(const GIF* _gif);
         ~GifDisplay();
 
+        void LoopFrames();
+
     private:
-        char ColorToChar();
+        char ColorToChar(const Color& color);
         // Initialize Color Map
         // Color to char
         // Loop frames
