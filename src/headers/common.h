@@ -4,9 +4,16 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <iostream>
-#include "Debug/logger.h"
+#include "logger.h"
+
+typedef uint8_t byte;
+
+// GIF Specs use 'unsigned' to represent 2 bytes but on some
+// machines it is 4 bytes, so I will just call it 'word' for simplicity
+typedef uint16_t word;
 
 enum class Severity {
     low = 0,
