@@ -3,10 +3,10 @@
 #include "gifmeta.h"
 #include "logger.h"
 
-#include <fstream>
 #include <ios>
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 #include <tgmath.h>
 
 namespace GIF
@@ -15,13 +15,10 @@ namespace GIF
     {
         this->mFP = fopen(this->mPath, "rb");
 
-        if (this->mFP == NULL)
+        if (this->mFP == nullptr)
             Debug::error(Severity::high, "GIF:", "Unable to open file");
         else
             LOG_SUCCESS << "Opened [" << this->mPath << "]" << std::endl;
-
-        if (ParseHeader() == Status::failure)
-            Debug::error(Severity::high, "GIF:", "Invalid Header");
     }
 
     Status File::ParseHeader()
@@ -50,6 +47,7 @@ namespace GIF
     {
         LOG_INFO << "Reading file information" << std::endl;
         ParseLSD();
+        GenerateFrameMap();
         LOG_SUCCESS << "Read File Information" << std::endl;
     }
 
@@ -83,9 +81,26 @@ namespace GIF
         return Status::success;
     }
 
-    Status File::ParseGCT()
+    Status File::GenerateFrameMap()
     {
+        LOG_INFO << "Generating Frame Map" << std::endl;
+       
+        this->mPixelMap = new char*[this->mLSD.height];
+        for (int row = 0; row < this->mLSD.height; row++) {
+            this->mPixelMap[row] = new char[this->mLSD.width]; 
+            for (int col = 0; col < this->mLSD.width; col++) {
+                this->mPixelMap[row][col] = ' ';
+            }
+        } 
 
+        byte nextByte = 0;
+
+        while (true) {
+ 
+        }
+        
+    
+        LOG_SUCCESS << "Generated Frame Map" << std::endl;
         return Status::success;
     }
 
@@ -98,7 +113,7 @@ namespace GIF
         
         /* Header information */ 
         dump << "File: " << this->mPath << std::endl;
-        dump << "Version: " << this->mHeader.version << std::endl;
+        dump << "Version: " << this->mHeader.version[0] << this->mHeader.version[1] << this->mHeader.version[2] << std::endl;
 
         /* Logical Screen Descriptor */
         dump << "LSD Width: " << (int)this->mLSD.width << std::endl; 
@@ -116,8 +131,8 @@ namespace GIF
             dump.setf(std::ios::hex, std::ios::basefield);    
             for (int i = 0; i < this->mGCTD.colorCount; i++) {
                     dump << "\tRed: " << std::uppercase << (int)this->mGCT[i].Red << std::endl;
-                    dump << "\tGreen : " << std::uppercase << (int)this->mGCT[i].Green << std::endl;
-                    dump << "\tBlue : " << std::uppercase << (int)this->mGCT[i].Blue << std::endl;
+                    dump << "\tGreen: " << std::uppercase << (int)this->mGCT[i].Green << std::endl;
+                    dump << "\tBlue: " << std::uppercase << (int)this->mGCT[i].Blue << std::endl;
                     dump << std::endl;
             } 
             dump.unsetf(std::ios::hex);
@@ -128,7 +143,10 @@ namespace GIF
 
     Status Initialize(File* gif)
     {
-        gif->OpenFile();  
+        gif->OpenFile(); 
+
+        if (gif->ParseHeader() == Status::failure)
+            Debug::error(Severity::high, "GIF:", "Unable to parse header");
 
         LOG_SUCCESS << "Initialized GIF File" << std::endl;
         return Status::success;

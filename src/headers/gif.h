@@ -19,17 +19,18 @@ namespace GIF
             
             void DumpInfo(const char* path);
 
-        private:
+            static void sigIntHandler(int sig);
+
+        protected:
             FILE*           mFP;
             Header          mHeader;
             LSD             mLSD;
             UNUSED GCTD     mGCTD;
             UNUSED Color*   mGCT;
+            char**          mPixelMap;
 
             Status ParseLSD();
-            Status ParseGCT();
             Status GenerateFrameMap();
-            
     };
 
     Status Initialize(File* gif);
