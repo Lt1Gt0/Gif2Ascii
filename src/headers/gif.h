@@ -12,6 +12,7 @@ namespace GIF
         public: 
             const char* mPath;
 
+            File();
             File(const char* path) : mPath(path) {}
             void OpenFile();
             Status ParseHeader();
@@ -31,6 +32,41 @@ namespace GIF
 
             Status ParseLSD();
             Status GenerateFrameMap();
+    };
+
+    /* TODO */
+    struct Image {
+        public:
+            Color*             mColorTable;
+            ImageDescriptor    mDescriptor;
+            ImageDataHeader    mDataHeader;
+            ImageExtensions    mExtensions;
+            std::vector<byte>       mData;
+            bool                    mTransparent;
+            byte                    mTransparentColorIndex;
+
+            // TODO
+            Image();
+
+            std::string LoadData();
+            void ReadDataSubBlocks();
+            void CheckExtensions();
+
+            //void UpdatePixelMap()
+            
+            // TODO
+        private:
+            const GIF::File& mGIF;
+            void DrawOverImage();
+            void RestoreCanvasToBG();
+            void RestoreToPrevState();
+
+            void LoadExtension(const ExtensionHeader& headerCheck);
+            
+            // Debug Prints
+            //void PrintDescriptor();
+            //void printData();
+            //void PrintSubBlockData();
     };
 
     Status Initialize(File* gif);

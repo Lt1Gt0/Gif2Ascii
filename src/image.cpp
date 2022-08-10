@@ -1,3 +1,16 @@
+#include "image.h"
+#include "gif.h"
+#include "common.h"
+
+namespace Image
+{
+    std::string Image::LoadData()
+    {
+        fread(&this->mDescriptor, sizeof(byte), sizeof(Meta::Descriptor), this->mGIF.
+    }
+}
+
+
 //#include "image.h"
 
 //#include <cstdint>
