@@ -1,23 +1,15 @@
-//#pragma once
-//#ifndef _GIF_DISPLAY_H
-//#define _GIF_DISPLAY_H
+#pragma once
+#ifndef _GIF_DISPLAY_H
+#define _GIF_DISPLAY_H
 
-//#include "gif.h"
+#include "gif.h"
+#include "gifmeta.h"
 
-//class GifDisplay 
-//{
-    //public:
-        //GifDisplay(const GIF* _gif);
-        //~GifDisplay();
+namespace GIF
+{
+    constexpr const char* CHAR_MAP = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'.";
+    void LoopFrames(const File* gif);
+    char ColorToChar(const Color& color);
+}
 
-        //void LoopFrames();
-
-    //private:
-        //char ColorToChar(const Color& color);
-        
-    //private:
-        //const GIF* mGIF;
-        //const char* mCharMap;
-//};
-
-//#endif // _GIF_DISPLAY_H
+#endif // _GIF_DISPLAY_H
