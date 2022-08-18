@@ -37,14 +37,12 @@ namespace GIF
         for (int i = 0; i < 3; i++) {
             if (this->mHeader.signature[i] != GIF_SIGNATURE[i])
                 return Status::failure;
-        } 
 
-        for (int i = 0; i < 3; i++) {
             if (this->mHeader.version[i] != GIF_87A[i]
              && this->mHeader.version[i] != GIF_89A[i]) {
                 return Status::failure;
             }
-        }
+        } 
 
         LOG_SUCCESS << "Parsed GIF Header" << std::endl;
         return Status::success;
@@ -92,11 +90,12 @@ namespace GIF
     {
         LOG_INFO << "Generating Frame Map" << std::endl;
        
-        this->mPixelMap = new char*[this->mLSD.height];
+        char** prevPixelMap = nullptr;
+        char** pixelMap = new char*[this->mLSD.height];
         for (int row = 0; row < this->mLSD.height; row++) {
-            this->mPixelMap[row] = new char[this->mLSD.width]; 
+            pixelMap[row] = new char[this->mLSD.width]; 
             for (int col = 0; col < this->mLSD.width; col++) {
-                this->mPixelMap[row][col] = ' ';
+                pixelMap[row][col] = ' ';
             }
         } 
 
@@ -111,9 +110,9 @@ namespace GIF
             LOG_INFO << "Loading Image Data" << std::endl;
             std::string rasterData = img.LoadData();
 
-            this->mPrevPixelMap = this->mPixelMap; 
-            img.UpdatePixelMap(rasterData, this->mPixelMap, this->mPrevPixelMap);
-            this->mFrameMap.push_back(this->mPixelMap);
+            prevPixelMap = pixelMap;
+            img.UpdatePixelMap(rasterData, pixelMap, prevPixelMap);
+            this->mFrameMap.push_back(pixelMap);
             this->mImageData.push_back((void*)&img);
 
             fread(&nextByte, sizeof(byte), 1, this->mFP);
@@ -184,9 +183,9 @@ namespace GIF
         return Status::success;
     }
 
-    int SigIntHandler(int sig)
+    void sigIntHandler(int sig)
     {
         system("clear");
-        exit(0);
+        exit(sig);
     }
 }

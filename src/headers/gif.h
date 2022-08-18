@@ -27,8 +27,6 @@ namespace GIF
         private:
             size_t mSize;
             Header mHeader;
-            char** mPixelMap;
-            char** mPrevPixelMap;
 
             Status ParseLSD();
             Status GenerateFrameMap();

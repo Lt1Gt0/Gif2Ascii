@@ -33,7 +33,6 @@ To run the program
   __HIGH PRIORITY__
   - [ ] Support gif87a format
   - [ ] Frame display timing
-  - [X] Correct ascii mappings according to colors
   - [ ] Transparency 
   - [ ] Move drawing frame data to seperate file for less confusion
 
@@ -41,7 +40,6 @@ To run the program
   - [ ] Dump gif information to seperate file for viewing (maybe)
   - [ ] Image scaling (fit size of terminal window as best as possible if needed)
   - [ ] Change display method to a web browser (could be set as a flag passed in upon unning the program)
-  - [X] Display ascii characters with color attributes in the terminal window 
   
   __LOW PRIORITY__
   - [ ] Possible support for different unicode characters (could be set as a flag passed in upon running the program)

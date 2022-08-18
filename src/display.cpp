@@ -1,4 +1,6 @@
 #include "display.h"
+#include "gifmeta.h"
+#include "logger.h"
 #include "lzw.h"
 
 #include <signal.h>
@@ -6,6 +8,8 @@
 #include <string>
 #include <tgmath.h>
 #include <string.h>
+#include <chrono>
+#include <thread>
 
 namespace GIF
 {
@@ -18,42 +22,41 @@ namespace GIF
         while (true) {
             int frameIdx = 0;
             for (char** frame : gif->mFrameMap) {
-                int col = 0;
                 
-                // TODO
-                /* for (char c : frame) */ {
-                    //// If for some reason a the character in the map is below zero, break
-                    //if (c < 0)
-                        //break;
+                // Check for color table type (LCT or GCT)
+                Color* colorTable;
+                if ((gif->mLSD.packed >> (int)LSDMask::GlobalColorTable) & 0x1)
+                    colorTable = gif->mGCT;
+                // else (TODO add LCT) 
+                
+                // Because image data is generic, typecast it to a Image*
+                Image* imgData = (Image*)gif->mImageData[frameIdx];
+                for (int row = 0; row < gif->mLSD.height; row++) {
+                    for (int col = 0; col < gif->mLSD.width; col++) {
+                        char c = frame[row][col];
 
-                    //if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                        //LOG_DEBUG << c << " - End of information" << std::endl;
-                        //break; 
-                    //}
+                        if (c < 0)
+                            break;
+
+                        if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
+                            LOG_DEBUG << c << " - End of information" << std::endl;
+                            break; 
+                        }
+
+                        Color color = colorTable[(int)c];
+                        if (imgData->mTransparent && c == imgData[frameIdx].mTransparentColorIndex) 
+                           color = colorTable[imgData->mTransparentColorIndex];
                     
-                    //Color color = this->mGIF->mColorTable[(int)c];
-                    //if (this->mGIF->mImageData[frameIdx].mTransparent 
-                    //&& c == this->mGIF->mImageData[frameIdx].mTransparentColorIndex) {
-                        //// Add transparent color  
-                        //color = this->mGIF->mColorTable[this->mGIF->mImageData[frameIdx].mTransparentColorIndex - 1];
-                    //} 
-                    
-                    //fprintf(stdout, "\x1b[38;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
-                    //fprintf(stdout, "\x1b[48;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
-                    //fprintf(stdout, "%c", ColorToChar(color));
-                    //fprintf(stdout, "\x1b[0m");
-                    //col++;
+                        fprintf(stdout, "\x1b[38;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
+                        fprintf(stdout, "\x1b[48;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
+                        fprintf(stdout, "%c", ColorToChar(color));
+                        fprintf(stdout, "\x1b[0m");
+                    }
+                }
 
-                    //if (col >= this->mGIF->mLsd.Width) {
-                        //col = 0;
-                        //fprintf(stdout, "\n"); 
-                    //} 
-                //} 
-
-                //std::this_thread::sleep_for(std::chrono::milliseconds(this->mGIF->mImageData[frameIdx].mExtensions.GraphicsControl.DelayTime * 10));
-                //frameIdx++;
-                //system("clear");
-                } 
+                std::this_thread::sleep_for(std::chrono::milliseconds(imgData[frameIdx].mExtensions.GraphicsControl.DelayTime * 10));
+                frameIdx++;
+                system("clear");
             }
         }
     }

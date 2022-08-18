@@ -1,4 +1,5 @@
 #include "lzw.h"
+#include "logger.h"
 #include <math.h>
 
 namespace LZW
@@ -8,7 +9,7 @@ namespace LZW
         if (codestream.size() <= 0)
             return "";
 
-        Debug::Print("Decompressing stream...");
+        LOG_DEBUG << "Decompressing stream" << std::endl;
 
         std::unordered_map<int, std::string> table;
         std::string charstream = ""; 
@@ -23,7 +24,7 @@ namespace LZW
 
         // Check for clearcode
         if (newCode == 4) {
-            Debug::Print("Encountered Clear Code...");
+            LOG_DEBUG << "Encountered Clear Code" << std::endl;
             table = InitializeCodeTable(colorTableSize);
         }
 
@@ -60,7 +61,7 @@ namespace LZW
             }
 
             if (table[newCode][0] == char(colorTableSize + 1)) {
-                Debug::Print("\nReinitializing Code table...");
+                LOG_DEBUG << "Reinitializing Code table" << std::endl;
                 table = InitializeCodeTable(colorTableSize);
             }
 

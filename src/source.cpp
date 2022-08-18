@@ -1,4 +1,5 @@
 #include "common.h"
+#include "display.h"
 #include "logger.h"
 #include "gif.h"
 
@@ -20,9 +21,7 @@ int main(int argc, char* argv[])
     file.DumpInfo("logs/dump");
     
     // Display GIF Image
-    // Setup drawing procdure and display frame data
-    //GifDisplay display = GifDisplay(&gif);
-    //display.LoopFrames();
+    //GIF::LoopFrames(&file);
 
     logger.Close();
     return 0;

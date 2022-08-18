@@ -1,4 +1,3 @@
-#include "image.h"
 #include "gif.h"
 #include "common.h"
 #include "gifmeta.h"
@@ -193,16 +192,13 @@ namespace GIF
         case 0:
             break;
         case 1:
-            DrawOverImage();
-            //DrawOverImage(rasterData, pixMap, lsd);
+            DrawOverImage(rasterData, pixMap);
             break;
         case 2:
-            RestoreCanvasToBG();
-            //RestoreCanvasToBG(pixMap, lsd);
+            RestoreCanvasToBG(pixMap);
             break;
         case 3:
-            RestoreToPrevState();
-            //RestoreToPrevState(pixMap, prevPixMap);
+            RestoreToPrevState(pixMap, prevPixMap);
             break;
         case 4:
         case 5:

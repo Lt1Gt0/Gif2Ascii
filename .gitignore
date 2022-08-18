@@ -16,3 +16,5 @@ redirects/
 
 compile_commands.json
 .cache/
+
+gdb.txt
