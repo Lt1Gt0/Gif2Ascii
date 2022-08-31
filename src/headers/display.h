@@ -3,11 +3,10 @@
 #define _GIF_DISPLAY_H
 
 #include "gif.h"
-#include "gifmeta.h"
 
 namespace GIF
 {
-    constexpr const char* CHAR_MAP = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'.";
+    constexpr const char* CHAR_MAP {"$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'."};
     void LoopFrames(const File* gif);
     char ColorToChar(const Color& color);
 }

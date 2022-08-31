@@ -1,63 +1,82 @@
 #include "display.h"
-#include "gifmeta.h"
 #include "logger.h"
+#include "common.h"
 #include "lzw.h"
 
 #include <signal.h>
 #include <unordered_map>
-#include <string>
-#include <tgmath.h>
 #include <string.h>
-#include <chrono>
+#include <tgmath.h>
 #include <thread>
+#include <chrono>
 
 namespace GIF
-{
+{ 
+    void SigIntHandler(int sig)
+    {
+        system("clear");        
+        exit(0);
+    }
+
     void LoopFrames(const File* gif)
     {
-        signal(SIGINT, sigIntHandler);
+        /* TODO
+         * Because of the system("clear") calls, all of the gif meta is
+         * destroyed, if I want to see the gif meta I should try to write
+         * it into a seperate file before drawing
+         */
+
+        signal(SIGINT, SigIntHandler);
         std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mGCTD.colorCount);
-        system("clear");
         
+        Color* colorTable = nullptr;
+        bool useLCT = false;
+        if ((gif->mLSD.packed >> (int)LSDMask::GlobalColorTable) & 0x1)
+            colorTable = gif->mGCT;
+        else 
+            useLCT = true;
+
+        system("clear");
         while (true) {
             int frameIdx = 0;
-            for (char** frame : gif->mFrameMap) {
-                
-                // Check for color table type (LCT or GCT)
-                Color* colorTable;
-                if ((gif->mLSD.packed >> (int)LSDMask::GlobalColorTable) & 0x1)
-                    colorTable = gif->mGCT;
-                // else (TODO add LCT) 
-                
-                // Because image data is generic, typecast it to a Image*
-                Image* imgData = (Image*)gif->mImageData[frameIdx];
-                for (int row = 0; row < gif->mLSD.height; row++) {
-                    for (int col = 0; col < gif->mLSD.width; col++) {
-                        char c = frame[row][col];
+            
+            // Because image data is generic, typecast it to an Image*
+            Image* imgData = (Image*)gif->mImageData[frameIdx];
 
-                        if (c < 0)
-                            break;
+            // if (useLCT) (TODO)
+            
+            for (std::vector<char> frame : gif->mFrameMap) {
+                int col = 0;
+                for (char c : frame) {
+                    // If for some reason a the character in the map is below zero, break
+                    if (c < 0)
+                        break;
 
-                        if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                            LOG_DEBUG << c << " - End of information" << std::endl;
-                            break; 
-                        }
-
-                        Color color = colorTable[(int)c];
-                        if (imgData->mTransparent && c == imgData[frameIdx].mTransparentColorIndex) 
-                           color = colorTable[imgData->mTransparentColorIndex];
-                    
-                        fprintf(stdout, "\x1b[38;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
-                        fprintf(stdout, "\x1b[48;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
-                        fprintf(stdout, "%c", ColorToChar(color));
-                        fprintf(stdout, "\x1b[0m");
+                    if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
+                        LOG_DEBUG << c << " - End of information" << std::endl;
+                        break; 
                     }
-                }
+                    
+                    Color color = colorTable[(int)c];
+                    if (imgData->mTransparent && c == imgData->mTransparentColorIndex)
+                        color = colorTable[imgData->mTransparentColorIndex - 1];
+                    
+                    fprintf(stdout, "\x1b[38;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
+                    fprintf(stdout, "\x1b[48;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
+                    fprintf(stdout, "%c", ColorToChar(color));
+                    fprintf(stdout, "\x1b[0m");
+                    col++;
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(imgData[frameIdx].mExtensions.GraphicsControl.DelayTime * 10));
+                    if (col >= gif->mLSD.width) {
+                        col = 0;
+                        fprintf(stdout, "\n"); 
+                    } 
+                } 
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(imgData->mExtensions.graphicsControl.delayTime * 10));
                 frameIdx++;
                 system("clear");
-            }
+            } 
         }
     }
 

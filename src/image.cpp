@@ -1,111 +1,112 @@
 #include "gif.h"
-#include "common.h"
 #include "gifmeta.h"
-#include "logger.h"
+
+#include <cstdint>
+#include <stdio.h>
+#include <unordered_map>
 #include "lzw.h"
+#include "logger.h"
 
-namespace GIF 
+namespace GIF
 {
-    std::string Image::LoadData()
+    Image::Image() {}
+    Image::~Image() {}
+
+    std::string Image::LoadData(File* const gif)
     {
-        fread(&this->mDescriptor, sizeof(byte), sizeof(ImageDescriptor), this->mGIF->mFP);
+        // Load the Image Descriptor into memory
+        fread(&this->mDescriptor, sizeof(byte), sizeof(ImageDescriptor), gif->mFP);
 
+        // TODO - Add support for LCT in GIFS that require it
         if ((this->mDescriptor.Packed >> (byte)ImgDescMask::LocalColorTable) & 0x1)
-            LOG_INFO << "Located Local color table" << std::endl;
-        else 
-            LOG_INFO << "Local Color Table not found" << std::endl;
+            LOG_INFO << "Loading Local Color Table" << std::endl;
+        else
+            LOG_INFO << "Local Color Table flag not set" << std::endl;
 
-        // Load Image header into memory
-        fread(&this->mDataHeader, sizeof(byte), sizeof(ImageDataHeader), this->mGIF->mFP);
-        ReadDataSubBlocks();
+        // Load the image header into memory
+        fread(&this->mDataHeader, sizeof(byte), sizeof(ImageDataHeader), gif->mFP); // Only read 2 bytes of file steam for LZW min and Follow Size 
+        ReadDataSubBlocks(gif);
 
-        // Get raster data for the image frame by decompressing the data block from the gif
-        std::string rasterData = "";
-        if (this->mGIF->mLSD.packed >> (int)LSDMask::GlobalColorTable) {
-            std::string rasterData = LZW::Decompress(this->mDataHeader, this->mGIF->mGCTD.colorCount, this->mData);
-        } else {
-            // TODO
-            // Make a statement that works for Local Color tables too 
-        }
-
+        // Get the raster data from the image frame by decompressing the data block from the gif
+        std::string rasterData = LZW::Decompress(this->mDataHeader, this->mColorTableSize, this->mData);
         return rasterData;
     }
 
-    void Image::ReadDataSubBlocks()
+    void Image::ReadDataSubBlocks(File* const gif)
     {
-        // TODO
+        // TODO 
         // while loop seems like it can be simplified for the first iteration
         // regarding the followSize
         
         byte nextByte = 0;
-        byte followSize = this->mDataHeader.FollowSize;
-
+        int followSize = this->mDataHeader.followSize;
+        
         while (followSize--) {
-            fread(&nextByte, sizeof(byte), 1, this->mGIF->mFP);
+            fread(&nextByte, sizeof(byte), 1, gif->mFP);
             this->mData.push_back(nextByte);
         }
 
-        fread(&nextByte, sizeof(byte), 1, this->mGIF->mFP);
+        fread(&nextByte, sizeof(byte), 1, gif->mFP);
 
         while (true) {
-            // Check for the end of a sub block
+            // Check for the end of sub block
             if (!nextByte)
                 break;
-
+            
             followSize = nextByte;
             while (followSize--) {
-                fread(&nextByte, sizeof(byte), 1, this->mGIF->mFP);
+                fread(&nextByte, sizeof(byte), 1, gif->mFP);
                 this->mData.push_back(nextByte);
             }
 
-            fread(&nextByte, sizeof(byte), 1, this->mGIF->mFP);
+            fread(&nextByte, sizeof(byte), 1, gif->mFP);
         }
 
         // TODO
-        // Print compressed stream of data to file
+        // Print out the compressed stream of data 
     }
 
-    void Image::CheckExtensions()
+    void Image::CheckExtensions(File* const gif)
     {
-        LOG_INFO << "Check for extensions" << std::endl; 
-           
-        // Allocate space in memory for a dummt extension header
+        LOG_INFO << "Checking for extensions" << std::endl;
+
+        // Allocate space in memory for an extension header
         ExtensionHeader extensionCheck = {};
 
         // Continue to loop until the next byte is not an extension introducer
         while (true) {
-            fread(&extensionCheck, sizeof(byte), sizeof(ExtensionHeader), this->mGIF->mFP);
+            fread(&extensionCheck, sizeof(byte), sizeof(ExtensionHeader), gif->mFP);
 
             // If the dummy header contains an introducer for a extension, load the extension type
-            if (extensionCheck.Introducer == EXTENSION_INTRODUCER) {
-                LoadExtension(extensionCheck);
+            if (extensionCheck.introducer == EXTENSION_INTRODUCER) {
+                LoadExtension(gif, extensionCheck);
             } else {
-                fseek(this->mGIF->mFP, -2, SEEK_CUR);
+                fseek(gif->mFP, -2, SEEK_CUR);
                 return;
             }
         }
     }
 
-    void Image::LoadExtension(const ExtensionHeader& headerCheck)
+    void Image::LoadExtension(File* const gif, const ExtensionHeader& headerCheck)
     {
         // If the header has a valid label for an extension, start each one
         // by loading the struct into memory and set its header to the one that was passed in
-        fseek(this->mGIF->mFP, -2, SEEK_CUR);
+        fseek(gif->mFP, -2, SEEK_CUR);
 
-        switch (headerCheck.Label) {
+        switch (headerCheck.label) {
             case ExtensionLabel::PlainText:
             {
                 LOG_INFO << "Loading plain text extension" << std::endl;
 
                 // Load Header
-                this->mExtensions.PlainText = {};
-                fread(&this->mExtensions.PlainText.header, sizeof(byte), sizeof(ExtensionHeader), this->mGIF->mFP);
+                this->mExtensions.plainText = {};
+                fread(&this->mExtensions.plainText.header, sizeof(byte), sizeof(ExtensionHeader), gif->mFP);
 
                 // Load the block size into the struct and load the data of that size into the data buffer
-                fread(&this->mExtensions.PlainText.blockSize, sizeof(byte), 1, this->mGIF->mFP);
+                fread(&this->mExtensions.plainText.blockSize, sizeof(byte), 1, gif->mFP);
 
-                this->mExtensions.PlainText.data = new byte[this->mExtensions.PlainText.blockSize];
-                fread(&this->mExtensions.PlainText.data, sizeof(byte), this->mExtensions.PlainText.blockSize, this->mGIF->mFP);
+                this->mExtensions.plainText.data = new byte[this->mExtensions.plainText.blockSize];
+                fread(&this->mExtensions.plainText.data, sizeof(byte), this->mExtensions.plainText.blockSize, gif->mFP);
 
                 LOG_INFO << "End of plain text extension" << std::endl;
                 break;
@@ -115,13 +116,13 @@ namespace GIF
                 LOG_INFO << "Loading graphics control extension" << std::endl;
 
                 // Load The entire Graphic Control Extension
-                this->mExtensions.GraphicsControl = {};
-                fread(&this->mExtensions.GraphicsControl, sizeof(byte), sizeof(GCE), this->mGIF->mFP);
+                this->mExtensions.graphicsControl = {};
+                fread(&this->mExtensions.graphicsControl, sizeof(byte), sizeof(GCE), gif->mFP);
                 
                 // Check for transparency
-                if ((this->mExtensions.GraphicsControl.Packed >> (byte)GCEMask::TransparentColor) & 0x01) {
+                if ((this->mExtensions.graphicsControl.packed >> (byte)GCEMask::TransparentColor) & 0x01) {
                     this->mTransparent = true;
-                    this->mTransparentColorIndex = this->mExtensions.GraphicsControl.TransparentColorIndex;
+                    this->mTransparentColorIndex = this->mExtensions.graphicsControl.transparentColorIndex;
 
                     LOG_INFO << "Transparent flag set in image" << std::endl;
                     LOG_INFO << "Tranparent Color Index: " << (int)this->mTransparentColorIndex << std::endl;
@@ -137,14 +138,14 @@ namespace GIF
                 LOG_INFO << "Loading comment extension" << std::endl;
 
                 // Load Header
-                this->mExtensions.Comment = {};
-                fread(&this->mExtensions.Comment.Header, sizeof(byte), sizeof(ExtensionHeader), this->mGIF->mFP);
+                this->mExtensions.comment = {};
+                fread(&this->mExtensions.comment.header, sizeof(byte), sizeof(ExtensionHeader), gif->mFP);
 
                 // Read into the data section until a null terminator is hit
                 byte nextByte = 0;
                 for (int i = 0; nextByte != 0x00; i++) {
-                    fread(&nextByte, sizeof(byte), 1, this->mGIF->mFP);
-                    this->mExtensions.Comment.Data.push_back(nextByte);
+                    fread(&nextByte, sizeof(byte), 1, gif->mFP);
+                    this->mExtensions.comment.data.push_back(nextByte);
                 }
 
                 LOG_INFO << "End of comment extension" << std::endl;
@@ -155,22 +156,22 @@ namespace GIF
                 LOG_INFO << "Loading application extension" << std::endl;
 
                 // Load Header
-                this->mExtensions.Application = {};
-                fread(&this->mExtensions.Application.header, sizeof(byte), sizeof(ExtensionHeader), this->mGIF->mFP);
+                this->mExtensions.application = {};
+                fread(&this->mExtensions.application.header, sizeof(byte), sizeof(ExtensionHeader), gif->mFP);
 
                 // Load the Block Length
-                fread(&this->mExtensions.Application.blockLength, sizeof(byte), 1, this->mGIF->mFP);
+                fread(&this->mExtensions.application.blockLength, sizeof(byte), 1, gif->mFP);
 
                 // Load Application Identifier
-                fread(&this->mExtensions.Application.identifier, sizeof(byte), this->mExtensions.Application.blockLength, this->mGIF->mFP);
+                fread(&this->mExtensions.application.identifier, sizeof(byte), this->mExtensions.application.blockLength, gif->mFP);
                 
                 // Load the authentication code
                 byte tmp = 0;
-                fread(&tmp, sizeof(byte), 1, this->mGIF->mFP);
-                fread(&this->mExtensions.Application.authenticationCode, sizeof(byte), tmp, this->mGIF->mFP);
+                fread(&tmp, sizeof(byte), 1, gif->mFP);
+                fread(&this->mExtensions.application.authenticationCode, sizeof(byte), tmp, gif->mFP);
 
                 // Check if the next byte in the file is the terminator
-                fread(&tmp, sizeof(byte), 1, this->mGIF->mFP);
+                fread(&tmp, sizeof(byte), 1, gif->mFP);
                 if (!tmp)
                     LOG_INFO << "End of application extension" << std::endl;
 
@@ -178,24 +179,26 @@ namespace GIF
             }
             default:
             {
-                LOG_ERROR << "Recived invalid extension type [" << (int)headerCheck.Label <<  "]" << std::endl;
-                fseek(this->mGIF->mFP, 2, SEEK_CUR); // Restore the file position to where it was after reading header
+                LOG_ERROR << "Recived invalid extension type [" << (int)headerCheck.label <<  "]" << std::endl;
+                fseek(gif->mFP, 2, SEEK_CUR); // Restore the file position to where it was after reading header
                 break;
             }
         }
     }
 
-    void Image::UpdatePixelMap(const std::string& rasterData, char** pixMap, UNUSED char** prevPixMap)
+    void Image::UpdatePixelMap(UNUSED File* const gif, UNUSED const std::string& rasterData, std::vector<char> pixMap, UNUSED std::vector<char> prevPixMap)
     {
-        int disposalMethod = ((this->mExtensions.GraphicsControl.Packed >> (byte)GCEMask::Disposal) & 0x07);
+        // Because each gif can have a different disposal method for different frames (according to GIF89a)
+        // it is best to handle each disposal method instread of printing the decompressed codestream directly
+        int disposalMethod = ((this->mExtensions.graphicsControl.packed >> (byte)GCEMask::Disposal) & 0x07);
         switch (disposalMethod) {
         case 0:
             break;
         case 1:
-            DrawOverImage(rasterData, pixMap);
+            DrawOverImage(gif, rasterData, pixMap);
             break;
         case 2:
-            RestoreCanvasToBG(pixMap);
+            RestoreCanvasToBG(gif, pixMap);
             break;
         case 3:
             RestoreToPrevState(pixMap, prevPixMap);
@@ -211,38 +214,74 @@ namespace GIF
         }
     }
 
-    void Image::DrawOverImage(const std::string& rasterData, char** pixelMap)
+    void Image::DrawOverImage(File* const gif, const std::string& rasterData, std::vector<char> pixelMap)
     {
         LOG_INFO << "Drawing over image" << std::endl;
-
+        int offset = 0;
         int currentChar = 0;
         for (int row = 0; row < this->mDescriptor.Height; row++) {
             for (int col = 0; col < this->mDescriptor.Width; col++) {
                 if ((size_t)currentChar + 1 <= rasterData.size()) {
-                    pixelMap[row][col] = rasterData.at(currentChar);
+                    offset = ((row + this->mDescriptor.Top) * gif->mLSD.width) + (col + this->mDescriptor.Left);
+                    pixelMap.at(offset) = rasterData.at(currentChar);
                     currentChar++;
                 }
             }
         }
     }
 
-    void Image::RestoreCanvasToBG(char** pixelMap)
+    void Image::RestoreCanvasToBG(File* const gif, std::vector<char> pixelMap)
     {
         LOG_INFO << "Restore canvas to background" << std::endl;
-        std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mGIF->mGCTD.colorCount);
+        std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mColorTableSize);
 
+        int offset = 0;
         for (int row = 0; row < this->mDescriptor.Height; row++ ) {
             for (int col = 0; col < this->mDescriptor.Left; col++) {
-                pixelMap[row][col] = codeTable[this->mGIF->mLSD.backgroundColorIndex][0];
+                offset = ((row + this->mDescriptor.Top) * gif->mLSD.width) + (col + this->mDescriptor.Left);
+                pixelMap.at(offset) = codeTable[gif->mLSD.backgroundColorIndex][0]; 
             }
         } 
     }
 
-    // TODO
-    void Image::RestoreToPrevState(char** pixelMap, char** prevPixelMap)
+    void Image::RestoreToPrevState(std::vector<char> pixMap, std::vector<char> prevPixMap)
     {
         LOG_INFO << "Restore canvas to previous state" << std::endl;
-        
-        //*pixMap = *prevPixMap;
+        pixMap = prevPixMap;
     }
+
+    /*
+    void Image::PrintDescriptor()
+    {
+        Debug::Print("------- Image Descriptor -------");
+        Debug::Print("Seperator: %X", this->mDescriptor.Seperator);
+        Debug::Print("Image Left: %d", this->mDescriptor.Left);
+        Debug::Print("Image Top: %d", this->mDescriptor.Top);
+        Debug::Print("Image Width: %d", this->mDescriptor.Width);
+        Debug::Print("Image Height: %d", this->mDescriptor.Height);
+        Debug::Print("Local Color Table Flag: %d", (this->mDescriptor.Packed >> (byte)ImgDescMask::LocalColorTable) & 0x1);
+        Debug::Print("Interlace Flag: %d", (this->mDescriptor.Packed >> (byte)ImgDescMask::Interlace) & 0x1);
+        Debug::Print("Sort Flag: %d", (this->mDescriptor.Packed >> (byte)ImgDescMask::IMGSort) & 0x1);
+        Debug::Print("Size of Local Color Table: %d", (this->mDescriptor.Packed >> (byte)ImgDescMask::IMGSize) & 0x7);
+        Debug::Print("--------------------------------");
+    }
+
+    void Image::PrintData()
+    {
+        Debug::Print("\n------- Image Data -------");
+        Debug::Print("LZW Minimum: 0x%X", this->mHeader.LZWMinimum);
+        Debug::Print("Initial Follow Size: 0x%X", this->mHeader.FollowSize);
+        Debug::Print("--------------------------");
+    }
+
+    void Image::PrintSubBlockData(std::vector<byte>* block)
+    {
+        Debug::Print("\n------- Block Data -------");
+        Debug::Print("Size: %ld\n", block->size());
+        for (int i = 0; i < (int)block->size(); i++) {
+            fprintf(stdout, "%X ", block->at(i));
+        }
+        Debug::Print("\n--------------------------");
+    }
+    */
 }

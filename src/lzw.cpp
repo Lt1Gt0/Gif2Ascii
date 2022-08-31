@@ -1,5 +1,6 @@
 #include "lzw.h"
-#include "logger.h"
+#include <stdio.h>
+#include <string>
 #include <math.h>
 
 namespace LZW
@@ -9,7 +10,7 @@ namespace LZW
         if (codestream.size() <= 0)
             return "";
 
-        LOG_DEBUG << "Decompressing stream" << std::endl;
+        Debug::Print("Decompressing stream...");
 
         std::unordered_map<int, std::string> table;
         std::string charstream = ""; 
@@ -17,14 +18,14 @@ namespace LZW
 
         int offset, newCode, oldCode, codesize, i;
         offset = 0, i = 0;
-        codesize = imgHeader.LZWMinimum + 1;
+        codesize = imgHeader.lzwMinimum + 1;
 
         newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
         offset += codesize;
 
         // Check for clearcode
         if (newCode == 4) {
-            LOG_DEBUG << "Encountered Clear Code" << std::endl;
+            Debug::Print("Encountered Clear Code...");
             table = InitializeCodeTable(colorTableSize);
         }
 
@@ -40,7 +41,7 @@ namespace LZW
         int count = table.size();
         while (i < (int)codestream.size() - 1) {
             if (offset + codesize > 8) {
-                word tmp = (codestream[i + 1] << 8) | codestream[i];
+                uint16_t tmp = (codestream[i + 1] << 8) | codestream[i];
                 newCode = (tmp >> offset) & ((int)pow(2, codesize) - 1);
                 offset -= 8;
                 i++;
@@ -61,7 +62,7 @@ namespace LZW
             }
 
             if (table[newCode][0] == char(colorTableSize + 1)) {
-                LOG_DEBUG << "Reinitializing Code table" << std::endl;
+                Debug::Print("\nReinitializing Code table...");
                 table = InitializeCodeTable(colorTableSize);
             }
 

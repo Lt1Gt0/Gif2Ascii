@@ -3,7 +3,6 @@
 #define _GIF_META_H
 
 #include <stdint.h>
-#include <stdio.h>
 #include <vector>
 #include "common.h"
 
@@ -11,10 +10,10 @@
 
 namespace GIF
 {
-    constexpr byte GIF_SIGNATURE[3] {'G', 'I', 'F'};
-    constexpr byte GIF_87A[3]       {'8', '7', 'a'};
-    constexpr byte GIF_89A[3]       {'8', '9', 'a'};
-
+    constexpr const char* GIF_SIGNATURE {"GIF"};
+    constexpr const char* GIF_87A       {"87a"};
+    constexpr const char* GIF_89A       {"89a"};
+    
     constexpr byte EXTENSION_INTRODUCER         {0x21};
     constexpr byte EXTENSION_TERMINATOR         {0x00};
     constexpr byte IMAGE_DESCRIPTOR_SEPERATOR   {0x2C};
@@ -22,14 +21,14 @@ namespace GIF
 
     enum class Status {
         success,
-        failure,
+        failure
     };
 
     enum class LSDMask : byte {
-        GlobalColorTable    = 0x7,
-        ColorResolution     = 0x4,
-        Sort                = 0x3, // Sort flag
-        Size                = 0x0, // Size of Global Color Table
+        GlobalColorTable    = 0x07,
+        ColorResolution     = 0x04,
+        Sort                = 0x03, // Sort flag
+        Size                = 0x00, // Size of Global Color Table
     };
 
     enum class ImgDescMask : byte {
@@ -53,49 +52,54 @@ namespace GIF
     };
 
     struct PACKED Header {
-        byte signature[3];
-        byte version[3];
+        char signature[3];
+        char version[3];
     };
 
     // Logical Screen Descriptor
     struct PACKED LSD {
-        word width;
-        word height;
-        byte packed;
-        byte backgroundColorIndex;
-        byte pixelAspectRatio;
-    };
+        word    width;
+        word    height;
 
-    struct Color {
-        byte Red;
-        byte Green;
-        byte Blue;
+        /* Packed Bit Description
+            1 : Global Color Table Flag
+            2-4 : Color Resolution
+            5 : Sort Flag
+            6-8 : Global Color Table Size
+        */
+        byte    packed;
+        byte    backgroundColorIndex;
+        byte    pixelAspectRatio;
     };
 
     // Global Color Table Descriptor
     struct PACKED GCTD {
-        byte sizeInLSD;
-        word colorCount;
-        word byteLength;
+        byte    sizeInLSD;
+        word    colorCount;
+        word    byteLength;
     };
 
+    struct Color {
+        byte Red;
+        byte Blue;
+        byte Green;
+    };
 
     struct PACKED ImageDescriptor {
-        byte Seperator;
-        word Left;
-        word Top;
-        word Width;
-        word Height;
+        byte    Seperator;
+        word    Left;
+        word    Top;
+        word    Width;
+        word    Height;
 
-        /*
-            Packed Bit Description
+        /* Packed Bit Description
             1 : Local Color Table Flag
             2 : Interlace Flag
             3 : Sort Flag
             4-5 : Reserved
             6-8 : Local Color Table Size
         */
-        byte Packed;
+        byte    Packed;
     };
 
     // Local Color Table
@@ -104,36 +108,36 @@ namespace GIF
     };
 
     struct PACKED ImageDataHeader {
-        byte LZWMinimum;
-        byte FollowSize;
+        byte lzwMinimum;
+        byte followSize;
     }; 
 
     struct SubBlock {
-        byte    FollowSize;
-        byte*   Data;
+        byte    followSize;
+        byte*   data;
     };
 
     struct PACKED ExtensionHeader {
-        byte            Introducer;
-        ExtensionLabel  Label;
+        byte         introducer;
+        ExtensionLabel  label;
     };
 
     // Graphics Control Extension
     struct PACKED GCE {
-        ExtensionHeader Header;
-        byte            BlockSize;
+        ExtensionHeader header;
+        byte            blockSize;
 
-        /*
-            Packed Bit Description
+        /* Packed Bit Description
             1-3 : Reserved
             4-6 : Disposal Method
             7 : User Input Flag
             8 : Transparent Color Flag
         */
-        byte            Packed;
-        word            DelayTime;
-        byte            TransparentColorIndex;
-        byte            BlockTerminator; // Always 0x00
+        byte            packed;
+
+        word            delayTime;
+        byte            transparentColorIndex;
+        byte            blockTerminator; // Always 0x00
     };
 
     struct PlainTextExtension {
@@ -152,16 +156,16 @@ namespace GIF
     };
 
     struct CommentExtension {
-        ExtensionHeader     Header;
-        std::vector<byte>   Data; 
+        ExtensionHeader     header;
+        std::vector<byte>   data; 
     };
 
     struct ImageExtensions {
-        GCE                     GraphicsControl;
-        PlainTextExtension      PlainText;
-        ApplicationExtension    Application;
-        CommentExtension        Comment;
+        GCE                     graphicsControl;
+        PlainTextExtension      plainText;
+        ApplicationExtension    application;
+        CommentExtension        comment;
     };
-}
 
+}
 #endif // _GIF_META_H

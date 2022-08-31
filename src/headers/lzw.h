@@ -2,17 +2,17 @@
 #ifndef _LZW_H
 #define _LZW_H
 
+#include <stdint.h>
 #include <vector>
 #include <unordered_map>
 #include <string>
 
-#include "common.h"
-#include "gif.h"
 #include "gifmeta.h"
+#include "common.h"
 
 namespace LZW 
 {
-    constexpr byte SPECIAL_CODE_COUNT {2};
+    constexpr int SPECIAL_CODE_COUNT {2};
 
     std::string Decompress(const GIF::ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream);
 

@@ -1,48 +1,46 @@
 #include "gif.h"
 #include "common.h"
-#include "gifmeta.h"
 #include "logger.h"
+#include "gifmeta.h"
+#include "lzw.h"
 
-#include <ios>
+#include <cstdint>
+#include <unistd.h>
 #include <stdio.h>
-#include <iostream>
-#include <fstream>
 #include <tgmath.h>
+#include <string.h>
+#include <unordered_map>
+#include <string.h>
+#include <vector>
 
 namespace GIF
 {
-    File::File(const char* path) : mPath(path) {}
-
-    void File::OpenFile()
+    File::File(const char* filepath) : mPath(filepath)
     {
         this->mFP = fopen(this->mPath, "rb");
 
         if (this->mFP == nullptr)
-            Debug::error(Severity::high, "GIF:", "Unable to open file");
+            Debug::error(Severity::high, "GIF:", "Unable to open file - ", this->mPath);
         else
             LOG_SUCCESS << "Opened [" << this->mPath << "]" << std::endl;
 
+        // Get the file size and restore the file pointer back to position 0
         fseek(this->mFP, 0, SEEK_END);
-        this->mSize = ftell(this->mFP);
+        this->mFileSize = ftell(this->mFP);
         rewind(this->mFP);
-        LOG_INFO << "Total File Size: " << (this->mSize) / 1024 << "kB" << std::endl;
+        LOG_INFO << "Total file size: " << (this->mFileSize / 1024) << "kB" << std::endl;
     }
+
+    File::~File() {}
 
     Status File::ParseHeader()
     {
         // Load the GIF header into memory
         fread(&this->mHeader, sizeof(byte), sizeof(Header), this->mFP);
 
-        // Check for a valid GIF Header
-        for (int i = 0; i < 3; i++) {
-            if (this->mHeader.signature[i] != GIF_SIGNATURE[i])
-                return Status::failure;
-
-            if (this->mHeader.version[i] != GIF_87A[i]
-             && this->mHeader.version[i] != GIF_89A[i]) {
-                return Status::failure;
-            }
-        } 
+        if (!(strncmp(this->mHeader.signature, GIF_SIGNATURE, 3)) && 
+            !(strncmp(this->mHeader.version, GIF_87A, 3) || strncmp(this->mHeader.version, GIF_89A, 3)))
+            return Status::failure;
 
         LOG_SUCCESS << "Parsed GIF Header" << std::endl;
         return Status::success;
@@ -50,68 +48,74 @@ namespace GIF
 
     void File::Read()
     {
-        LOG_INFO << "Reading file information" << std::endl;
+        LOG_INFO << "Reading GIF Information" << std::endl;
+        
+        if (ParseHeader() == Status::failure)
+            Debug::error(Severity::high, "GIF:", "Unable to parse header");
+
         ParseLSD();
         GenerateFrameMap();
-        LOG_SUCCESS << "Read File Information" << std::endl;
+
+        LOG_SUCCESS << "Read GIF Information" << std::endl;
     }
 
     Status File::ParseLSD()
     {
-        LOG_INFO << "Attempting to parse LSD" << std::endl;
+        LOG_INFO << "Attempting to load Logical Screen Descriptor" << std::endl;
 
-        this->mLSD = {};
+        //Load the LSD From GIF File 
         fread(&this->mLSD, sizeof(byte), sizeof(LSD), this->mFP);
+
+        // Check to see if the GCT flag is set
         if (this->mLSD.packed >> (int)LSDMask::GlobalColorTable) {
             LOG_INFO << "GCTD Present - Loading GCTD" << std::endl;
 
             this->mGCTD = {};
-            this->mGCTD.sizeInLSD = (this->mLSD.packed >> (byte)LSDMask::Size) & 0x7;
+            this->mGCTD.sizeInLSD = (this->mLSD.packed >> (byte)LSDMask::Size) & 0x07;
             this->mGCTD.colorCount = pow(2, this->mGCTD.sizeInLSD + 1);
-            this->mGCTD.byteLength = 3 * this->mGCTD.colorCount;            
+            this->mGCTD.byteLength = 3 * this->mGCTD.colorCount;
 
-            // generate GCT
+            // Generate the GCT from each color present in file
             this->mGCT = new Color[this->mGCTD.colorCount];
             for (int i = 0; i < this->mGCTD.colorCount; i++) {
                 Color color = {};
                 fread(&color, sizeof(byte), sizeof(Color), this->mFP);
-                this->mGCT[i] = color;
-            } 
+                this->mGCT[i] = color; 
+            }
 
             LOG_SUCCESS << "Loaded GCTD" << std::endl;
-        }
-        
+        } 
 
-        LOG_SUCCESS << "Parsed LSD" << std::endl;
+        LOG_SUCCESS << "Logical Screen Descriptor Initialized" << std::endl;
         return Status::success;
     }
+
+
 
     Status File::GenerateFrameMap()
     {
         LOG_INFO << "Generating Frame Map" << std::endl;
-       
-        char** prevPixelMap = nullptr;
-        char** pixelMap = new char*[this->mLSD.height];
-        for (int row = 0; row < this->mLSD.height; row++) {
-            pixelMap[row] = new char[this->mLSD.width]; 
-            for (int col = 0; col < this->mLSD.width; col++) {
-                pixelMap[row][col] = ' ';
-            }
-        } 
+        
+        // The pixel map will be initialized as a single vector
+        // to mimic a two dimensional array, elements are accessed like so
+        // (char) pixel = PixelMap.at(ROW * width) + COL
+        std::vector<char> pixelMap(this->mLSD.width * this->mLSD.height, 0);
+        std::vector<char> prevPixelMap = pixelMap;
 
+        // Build up each frame for the gif
         byte nextByte = 0;
         while (true) {
-            Image img = Image(this);
+            Image img = Image();
 
             // Load Image Extenstion information before proceeding with parsing image data
-            img.CheckExtensions();
+            img.CheckExtensions(this);
             
             // Load the decompressed image data and draw the frame
             LOG_INFO << "Loading Image Data" << std::endl;
-            std::string rasterData = img.LoadData();
+            std::string rasterData = img.LoadData(this);
 
-            prevPixelMap = pixelMap;
-            img.UpdatePixelMap(rasterData, pixelMap, prevPixelMap);
+            prevPixelMap = pixelMap; 
+            img.UpdatePixelMap(this, rasterData, pixelMap, prevPixelMap);
             this->mFrameMap.push_back(pixelMap);
             this->mImageData.push_back((void*)&img);
 
@@ -119,7 +123,7 @@ namespace GIF
             fseek(this->mFP, -1, SEEK_CUR);
             
             // Check if the file ended correctly (should end on 0x3B)
-            if ((size_t)ftell(this->mFP) == this->mSize - 1) {
+            if ((size_t)ftell(this->mFP) == this->mFileSize - 1) {
                 if (nextByte == TRAILER)
                     LOG_SUCCESS << "File ended naturally" << std::endl;
                 else
@@ -130,7 +134,7 @@ namespace GIF
                 break;
             }
         }
-    
+
         LOG_SUCCESS << "Generated Frame Map" << std::endl;
         return Status::success;
     }
@@ -170,22 +174,5 @@ namespace GIF
         }
             
         dump.close();
-    }
-
-    Status Initialize(File* gif)
-    {
-        gif->OpenFile(); 
-
-        if (gif->ParseHeader() == Status::failure)
-            Debug::error(Severity::high, "GIF:", "Unable to parse header");
-
-        LOG_SUCCESS << "Initialized GIF File" << std::endl;
-        return Status::success;
-    }
-
-    void sigIntHandler(int sig)
-    {
-        system("clear");
-        exit(sig);
     }
 }
