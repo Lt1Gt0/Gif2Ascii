@@ -21,6 +21,20 @@ enum class Severity {
     high
 };
 
+inline void error(Severity severity)
+{
+    LOG_ERROR << "Exiting with severity: " << (int)severity << std::endl;
+    std::cerr << '\n';
+    std::exit((int)severity);
+}
+
+template<typename T, typename... Ts>
+inline constexpr void error(Severity severity, T head, Ts... tail)
+{
+    std::cerr << head << " ";
+    error(severity, tail...);
+}
+
 namespace Debug
 {
     inline void Print(const char* fmt, ...)
@@ -41,21 +55,6 @@ namespace Debug
         fprintf(stderr, "\n");
         fflush(stderr);
         va_end(ap);
-    }
-
-
-    inline void error(Severity severity)
-    {
-        LOG_ERROR << "Exiting with severity: " << (int)severity << std::endl;
-        std::cerr << '\n';
-        std::exit((int)severity);
-    }
-
-    template<typename T, typename... Ts>
-    inline constexpr void error(Severity severity, T head, Ts... tail)
-    {
-        std::cerr << head << " ";
-        error(severity, tail...);
     }
 }
 

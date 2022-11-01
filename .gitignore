@@ -18,3 +18,7 @@ compile_commands.json
 .cache/
 
 gdb.txt
+
+*.plist
+.cache/
+.ccls-cache/

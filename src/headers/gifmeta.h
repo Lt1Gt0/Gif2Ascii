@@ -166,6 +166,6 @@ namespace GIF
         ApplicationExtension    application;
         CommentExtension        comment;
     };
-
 }
+
 #endif // _GIF_META_H
