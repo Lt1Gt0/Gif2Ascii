@@ -15,11 +15,10 @@ int main(int argc, char** argv)
     LOG_INIT("logs/", "info")
         
     if (argc < 2)
-        error(Severity::high, "Usage:", "./bin/gif2Ascii <filepath>");
+        error(Severity::high, "Usage:", "./gif2Ascii <filepath>");
 
     // Attempt to load GIF
     GIF::File gif = GIF::File(argv[1]);
-    gif.Read();
     gif.DumpInfo("logs/dump");
 
     GIF::LoopFrames(&gif);

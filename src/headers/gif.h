@@ -6,6 +6,8 @@
 #include <vector>
 #include <stdio.h>
 #include <exception>
+#include <fstream>
+#include <string>
 #include "gifmeta.h"
 //#include "image.h"
 
@@ -13,27 +15,32 @@
 
 namespace GIF
 {
+
     class File
     {
         public:
-            File(const char* filepath);
+            File(std::string filepath);
             ~File();
 
-            void Read();
-            void DumpInfo(const char* dumpPath);
+            void DumpInfo(std::string dumpPath);
 
-            const char*                     mPath;
-            FILE*                           mFP;
+            std::string                     mPath;
+            std::filebuf*                   mFileBuffer;
+            std::ifstream                   mInStream;
             LSD                             mLSD;
             UNUSED GCTD                     mGCTD;
             UNUSED Color*                   mGCT;
             std::vector<void*>              mImageData;
             std::vector<std::vector<char>>  mFrameMap;
+            std::size_t mFileSize;
 
         private:
-            size_t mFileSize;
+            byte*  mLoadedData;
+            std::size_t mFileOffset;
             Header mHeader;
+            std::streampos mCurrentFilePos;
 
+            void Read();
             Status ParseHeader();
             Status ParseLSD();
             Status GenerateFrameMap();
@@ -69,12 +76,11 @@ namespace GIF
             void LoadExtension(File* const gif, const ExtensionHeader& headerCheck);
             
             // Debugging prints
-            //void PrintDescriptor();
-            //void PrintData();
-            //void PrintSubBlockData(std::vector<byte>* block);
+            void PrintDescriptor();
+            void PrintData();
+            void PrintSubBlockData(std::vector<byte>* block);
 
             byte mColorTableSize;
-        
     };
 }
 

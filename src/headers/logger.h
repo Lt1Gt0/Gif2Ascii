@@ -40,7 +40,7 @@ class Logger
         void Init(std::string path, std::string filename)
         {
             if (!path.empty() && !filename.empty()) {
-                this->mFilename = std::string(path) + std::string(filename) + "_log.txt";
+                this->mFilename = std::string(path) + std::string(filename) + ".log";
                 this->mStream.open(this->mFilename);
 
                 // Write the Byte Order Mark into the beginning of the file

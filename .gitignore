@@ -2,8 +2,8 @@
 logs/
 
 # incase I dont clean objects before pushing
+Gif2Ascii
 obj/
-bin/
 *.o
 *.tmp
  
@@ -20,5 +20,6 @@ compile_commands.json
 gdb.txt
 
 *.plist
+.gdbinit
 .cache/
 .ccls-cache/

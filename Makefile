@@ -1,7 +1,6 @@
 #File Directory things (might be overkill idk yet)
 INCLUDE = -I$(SRC_DIR)/headers
 NCURSES = -lncurses
-BUILD_DIR = bin
 SRC_DIR = src
 OBJ_DIR = obj
 LOG_DIR = logs
@@ -16,9 +15,8 @@ LDFLAGS =
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 #Essential files and groups
-OBJNAME = Gif2Ascii 
+OBJ = Gif2Ascii 
 SRCS = $(call rwildcard, $(SRC_DIR), *.cpp)
-OBJ = $(addprefix $(BUILD_DIR)/, $(OBJNAME))
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
 all: $(OBJ) 
@@ -38,7 +36,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
 
 clean:
-	rm -rf $(BUILD_DIR)/
+	rm $(OBJ)
 	rm -rf $(OBJ_DIR)/
 	rm -rf $(REDIRECT_DIR)/
 	rm -rf $(LOG_DIR)/
