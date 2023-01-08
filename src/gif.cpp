@@ -32,7 +32,7 @@ namespace GIF
         mFileSize = mFileBuffer->pubseekoff(0, mInStream.end, mInStream.in);
         mFileBuffer->pubseekpos(0, mInStream.in);
         mCurrentFilePos = mInStream.tellg(); 
-        LOG_DEBUG << "Total file size: " << (mFileSize / 1024) << "kB" << std::endl;
+        LOG_DEBUG << "Total file size: " << (mFileSize / 1024) << "kB (" << mFileSize << " B)" << std::endl;
 
         Read();
 
@@ -126,29 +126,26 @@ namespace GIF
             LOG_INFO << "Loading Image Data" << std::endl;
             std::string rasterData = img.LoadData(this);
 
-            //prevPixelMap = pixelMap; 
-            //img.UpdatePixelMap(this, rasterData, pixelMap, prevPixelMap);
-            //mFrameMap.push_back(pixelMap);
-            //mImageData.push_back((void*)&img);
+            prevPixelMap = pixelMap; 
+            img.UpdatePixelMap(this, rasterData, pixelMap, prevPixelMap);
+            mFrameMap.push_back(pixelMap);
+            mImageData.push_back((void*)&img);
 
-            //nextByte = mInStream.peek();
-            ////mFileBuffer->sgetc();
-            ////fseek(mFP, -1, SEEK_CUR);
+            nextByte = mInStream.peek();
+            //mFileBuffer->sgetc();
+            //fseek(mFP, -1, SEEK_CUR);
             
-            //// Check if the file ended correctly (should end on 0x3B)
-            //if ((size_t)mInStream.tellg() == mFileSize - 1) {
-                //if (nextByte == TRAILER)
-                    //LOG_SUCCESS << "File ended naturally" << std::endl;
-                //else
-                    //LOG_WARN << "File ended unaturally with byte [" << nextByte << "]" << std::endl;
+            // Check if the file ended correctly (should end on 0x3B)
+            if ((size_t)mInStream.tellg() == mFileSize - 1) {
+                if (nextByte == TRAILER)
+                    LOG_SUCCESS << "File ended naturally" << std::endl;
+                else
+                    LOG_WARN << "File ended unaturally with byte [" << nextByte << "]" << std::endl;
 
-                //// There is nothing left to get from the file so close it
-                //mInStream.close();
-                //break;
-            //}
-            
-            // REMOVE ME 
-            break;
+                // There is nothing left to get from the file so close it
+                mInStream.close();
+                break;
+            }
         }
 
         LOG_SUCCESS << "Generated Frame Map" << std::endl;

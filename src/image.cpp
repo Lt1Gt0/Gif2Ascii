@@ -38,8 +38,11 @@ namespace GIF
         // while loop seems like it can be simplified for the first iteration
         // regarding the followSize
         
+        std::cout << (size_t)gif->mInStream.tellg() << std::endl; 
+
         byte nextByte = 0;
         int followSize = mDataHeader.followSize;
+        std::cout << "Follow size: " << (int)mDataHeader.followSize << std::endl; 
         
         while (followSize--) {
             nextByte = gif->mInStream.get();
@@ -62,6 +65,7 @@ namespace GIF
             nextByte = gif->mInStream.get();
         }
 
+        std::cout << (size_t)gif->mInStream.tellg() << std::endl; 
         // TODO
         // Print out the compressed stream of data 
     }
@@ -249,7 +253,6 @@ namespace GIF
         pixMap = prevPixMap;
     }
 
-    
     void Image::PrintDescriptor()
     {
         Debug::Print("------- Image Descriptor -------");
