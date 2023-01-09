@@ -27,11 +27,11 @@ namespace GIF
          */
 
         signal(SIGINT, SigIntHandler);
-        std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mGCTD.colorCount);
+        std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mGCTD.ColorCount);
         
         Color* colorTable = nullptr;
         bool useLCT = false;
-        if ((gif->mLSD.packed >> (int)LSDMask::GlobalColorTable) & 0x1)
+        if ((gif->mLSD.Packed >> (int)LSDMask::GlobalColorTable) & 0x1)
             colorTable = gif->mGCT;
         else 
             useLCT = true;
@@ -67,13 +67,13 @@ namespace GIF
                     fprintf(stdout, "\x1b[0m");
                     col++;
 
-                    if (col >= gif->mLSD.width) {
+                    if (col >= gif->mLSD.Width) {
                         col = 0;
                         fprintf(stdout, "\n"); 
                     } 
                 } 
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(imgData->mExtensions.graphicsControl.delayTime * 10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(imgData->mExtensions.GraphicsControl.DelayTime * 10));
                 frameIdx++;
                 system("clear");
             } 

@@ -32,7 +32,7 @@ namespace GIF
         mFileSize = mFileBuffer->pubseekoff(0, mInStream.end, mInStream.in);
         mFileBuffer->pubseekpos(0, mInStream.in);
         mCurrentFilePos = mInStream.tellg(); 
-        LOG_DEBUG << "Total file size: " << (mFileSize / 1024) << "kB" << std::endl;
+        LOG_DEBUG << "Total file size: " << (mFileSize / 1024) << "kB (" << mFileSize << " B)" << std::endl;
 
         Read();
 
@@ -52,8 +52,8 @@ namespace GIF
         // Load the GIF header into memory
         mInStream.read(reinterpret_cast<char*>(&mHeader), sizeof(byte) * sizeof(Header));
         
-        if (!(std::strncmp(mHeader.signature, GIF_SIGNATURE, 3)) && 
-            !(strncmp(mHeader.version, GIF_87A, 3) || strncmp(mHeader.version, GIF_89A, 3)))
+        if (!(std::strncmp(mHeader.Signature, GIF_SIGNATURE, 3)) && 
+            !(strncmp(mHeader.Version, GIF_87A, 3) || strncmp(mHeader.Version, GIF_89A, 3)))
             return Status::failure;
 
         LOG_SUCCESS << "Parsed GIF Header" << std::endl;
@@ -81,17 +81,17 @@ namespace GIF
         mInStream.read(reinterpret_cast<char*>(&mLSD), sizeof(byte) * sizeof(LSD));
 
         // Check to see if the GCT flag is set
-        if (mLSD.packed >> (int)LSDMask::GlobalColorTable) {
+        if (mLSD.Packed >> (int)LSDMask::GlobalColorTable) {
             LOG_INFO << "GCTD Present - Loading GCTD" << std::endl;
 
             mGCTD = {};
-            mGCTD.sizeInLSD = (mLSD.packed >> (byte)LSDMask::Size) & 0x07;
-            mGCTD.colorCount = pow(2, mGCTD.sizeInLSD + 1);
-            mGCTD.byteLength = 3 * mGCTD.colorCount;
+            mGCTD.SizeInLSD = (mLSD.Packed >> (byte)LSDMask::Size) & 0x07;
+            mGCTD.ColorCount = pow(2, mGCTD.SizeInLSD + 1);
+            mGCTD.ByteLength = 3 * mGCTD.ColorCount;
 
             // Generate the GCT from each color present in file
-            mGCT = new Color[mGCTD.colorCount];
-            for (int i = 0; i < mGCTD.colorCount; i++) {
+            mGCT = new Color[mGCTD.ColorCount];
+            for (int i = 0; i < mGCTD.ColorCount; i++) {
                 Color color = {};
                 mInStream.read(reinterpret_cast<char*>(&color), sizeof(byte) * sizeof(Color));
                 mGCT[i] = color; 
@@ -111,11 +111,10 @@ namespace GIF
         // The pixel map will be initialized as a single vector
         // to mimic a two dimensional array, elements are accessed like so
         // (char) pixel = PixelMap.at(ROW * width) + COL
-        Vec<char> pixelMap(mLSD.width * mLSD.height, 0);
+        Vec<char> pixelMap(mLSD.Width * mLSD.Height, 0);
         Vec<char> prevPixelMap = pixelMap;
 
         // Build up each frame for the gif
-        byte nextByte = 0;
         while (true) {
             Image img = Image();
 
@@ -126,29 +125,23 @@ namespace GIF
             LOG_INFO << "Loading Image Data" << std::endl;
             std::string rasterData = img.LoadData(this);
 
-            //prevPixelMap = pixelMap; 
-            //img.UpdatePixelMap(this, rasterData, pixelMap, prevPixelMap);
-            //mFrameMap.push_back(pixelMap);
-            //mImageData.push_back((void*)&img);
-
-            //nextByte = mInStream.peek();
-            ////mFileBuffer->sgetc();
-            ////fseek(mFP, -1, SEEK_CUR);
+            prevPixelMap = pixelMap; 
+            img.UpdatePixelMap(this, rasterData, pixelMap, prevPixelMap);
+            mFrameMap.push_back(pixelMap);
+            mImageData.push_back((void*)&img);
+            byte nextByte = mInStream.peek();
             
-            //// Check if the file ended correctly (should end on 0x3B)
-            //if ((size_t)mInStream.tellg() == mFileSize - 1) {
-                //if (nextByte == TRAILER)
-                    //LOG_SUCCESS << "File ended naturally" << std::endl;
-                //else
-                    //LOG_WARN << "File ended unaturally with byte [" << nextByte << "]" << std::endl;
+            // Check if the file ended correctly (should end on 0x3B)
+            if ((size_t)mInStream.tellg() == mFileSize - 1) {
+                if (nextByte == TRAILER)
+                    LOG_SUCCESS << "File ended naturally" << std::endl;
+                else
+                    LOG_WARN << "File ended unaturally with byte [" << nextByte << "]" << std::endl;
 
-                //// There is nothing left to get from the file so close it
-                //mInStream.close();
-                //break;
-            //}
-            
-            // REMOVE ME 
-            break;
+                // There is nothing left to get from the file so close it
+                mInStream.close();
+                break;
+            }
         }
 
         LOG_SUCCESS << "Generated Frame Map" << std::endl;
@@ -164,23 +157,23 @@ namespace GIF
         
         // Header information
         dump << "File: " << mPath << std::endl;
-        dump << "Version: " << mHeader.version[0] << mHeader.version[1] << mHeader.version[2] << std::endl;
+        dump << "Version: " << mHeader.Version[0] << mHeader.Version[1] << mHeader.Version[2] << std::endl;
 
         // Logical Screen Descriptor
-        dump << "LSD Width: " << (int)mLSD.width << std::endl; 
-        dump << "LSD Height: " << (int)mLSD.height << std::endl; 
-        dump << "GCTD Present: " << (int)((mLSD.packed >> (byte)LSDMask::GlobalColorTable) & 0x1) << std::endl;
-        dump << "LSD Background Color Index: " << (int)mLSD.backgroundColorIndex << std::endl; 
-        dump << "LSD Pixel Aspect Ratio: " << (int)mLSD.pixelAspectRatio << std::endl; 
+        dump << "LSD Width: " << (int)mLSD.Width << std::endl; 
+        dump << "LSD Height: " << (int)mLSD.Height << std::endl; 
+        dump << "GCTD Present: " << (int)((mLSD.Packed >> (byte)LSDMask::GlobalColorTable) & 0x1) << std::endl;
+        dump << "LSD Background Color Index: " << (int)mLSD.BackgroundColorIndex << std::endl; 
+        dump << "LSD Pixel Aspect Ratio: " << (int)mLSD.PixelAspectRatio << std::endl; 
 
         // GCTD / GCT
-        if ((mLSD.packed >> (byte)LSDMask::GlobalColorTable) & 0x1) {
-            dump << "GCT Size: " << (int)mGCTD.sizeInLSD << std::endl;
-            dump << "GCT Color Count: " << (int)mGCTD.colorCount << std::endl;
-            dump << "GCT Size in bytes: " << (int)mGCTD.byteLength << std::endl;
+        if ((mLSD.Packed >> (byte)LSDMask::GlobalColorTable) & 0x1) {
+            dump << "GCT Size: " << (int)mGCTD.SizeInLSD << std::endl;
+            dump << "GCT Color Count: " << (int)mGCTD.ColorCount << std::endl;
+            dump << "GCT Size in bytes: " << (int)mGCTD.ByteLength << std::endl;
             
             dump.setf(std::ios::hex, std::ios::basefield);    
-            for (int i = 0; i < mGCTD.colorCount; i++) {
+            for (int i = 0; i < mGCTD.ColorCount; i++) {
                     dump << "\tRed: " << std::uppercase << (int)mGCT[i].Red << std::endl;
                     dump << "\tGreen: " << std::uppercase << (int)mGCT[i].Green << std::endl;
                     dump << "\tBlue: " << std::uppercase << (int)mGCT[i].Blue << std::endl;

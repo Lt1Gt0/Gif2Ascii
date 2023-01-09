@@ -18,7 +18,7 @@ namespace LZW
 
         int offset, newCode, oldCode, codesize, i;
         offset = 0, i = 0;
-        codesize = imgHeader.lzwMinimum + 1;
+        codesize = imgHeader.LzwMinimum + 1;
 
         newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
         offset += codesize;
