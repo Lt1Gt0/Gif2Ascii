@@ -52,14 +52,14 @@ namespace GIF
     };
 
     struct PACKED Header {
-        char signature[3];
-        char version[3];
+        char Signature[3];
+        char Version[3];
     };
 
     // Logical Screen Descriptor
     struct PACKED LSD {
-        word    width;
-        word    height;
+        word    Width;
+        word    Height;
 
         /* Packed Bit Description
             1 : Global Color Table Flag
@@ -67,16 +67,16 @@ namespace GIF
             5 : Sort Flag
             6-8 : Global Color Table Size
         */
-        byte    packed;
-        byte    backgroundColorIndex;
-        byte    pixelAspectRatio;
+        byte    Packed;
+        byte    BackgroundColorIndex;
+        byte    PixelAspectRatio;
     };
 
     // Global Color Table Descriptor
     struct PACKED GCTD {
-        byte    sizeInLSD;
-        word    colorCount;
-        word    byteLength;
+        byte    SizeInLSD;
+        word    ColorCount;
+        word    ByteLength;
     };
 
     struct Color {
@@ -108,24 +108,24 @@ namespace GIF
     };
 
     struct PACKED ImageDataHeader {
-        byte lzwMinimum;
-        byte followSize;
+        byte LzwMinimum;
+        byte FollowSize;
     }; 
 
     struct SubBlock {
-        byte    followSize;
-        byte*   data;
+        byte    FollowSize;
+        byte*   Data;
     };
 
     struct PACKED ExtensionHeader {
-        byte         introducer;
-        ExtensionLabel  label;
+        byte         Introducer;
+        ExtensionLabel  Label;
     };
 
     // Graphics Control Extension
     struct PACKED GCE {
-        ExtensionHeader header;
-        byte            blockSize;
+        ExtensionHeader Header;
+        byte            BlockSize;
 
         /* Packed Bit Description
             1-3 : Reserved
@@ -133,38 +133,48 @@ namespace GIF
             7 : User Input Flag
             8 : Transparent Color Flag
         */
-        byte            packed;
+        byte            Packed;
 
-        word            delayTime;
-        byte            transparentColorIndex;
-        byte            blockTerminator; // Always 0x00
+        word            DelayTime;
+        byte            TransparentColorIndex;
+        byte            BlockTerminator; // Always 0x00
     };
 
     struct PlainTextExtension {
-        ExtensionHeader header;
-        byte            blockSize;
-        byte*           data;
-        byte            terminator;
+        ExtensionHeader Header;
+        byte            BlockSize;
+        word            TextGridLeft;
+        word            TextGridTop;
+        word            TextGridWidth;
+        word            TextGridHeight;
+        byte            CellWidth;
+        byte            CellHeight;
+        byte            TextFgColorIndex;
+        byte            TextBgColorIndex;
+        byte*           Data;
+        byte            Terminator;
     };
 
     struct ApplicationExtension {
-        ExtensionHeader header;
-        byte            blockLength;
-        byte*           identifier;
-        byte*           authenticationCode;
-        byte            terminator;
+        ExtensionHeader Header;
+        byte            BlockLength;
+        byte*           Identifier;
+        byte*           AuthenticationCode;
+        byte*           Data;
+        byte            Terminator;
     };
 
     struct CommentExtension {
-        ExtensionHeader     header;
-        std::vector<byte>   data; 
+        ExtensionHeader     Header;
+        std::vector<byte>   Data; 
+        byte                Temrinator;
     };
 
     struct ImageExtensions {
-        GCE                     graphicsControl;
-        PlainTextExtension      plainText;
-        ApplicationExtension    application;
-        CommentExtension        comment;
+        GCE                     GraphicsControl;
+        PlainTextExtension      PlainText;
+        ApplicationExtension    Application;
+        CommentExtension        Comment;
     };
 }
 

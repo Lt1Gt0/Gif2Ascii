@@ -24,6 +24,8 @@ namespace GIF
             LOG_INFO << "Local Color Table flag not set" << std::endl;
 
         // Load the image header into memory
+        Debug::Print("%02X", (size_t)gif->mInStream.tellg());
+        Debug::Print("%02X\n", (size_t)gif->mInStream.peek());
         gif->mInStream.read(reinterpret_cast<char*>(&mDataHeader), sizeof(byte) * sizeof(ImageDataHeader)); // Only read 2 bytes of file steam for LZW min and Follow Size 
         ReadDataSubBlocks(gif);
 
@@ -38,11 +40,9 @@ namespace GIF
         // while loop seems like it can be simplified for the first iteration
         // regarding the followSize
         
-        std::cout << (size_t)gif->mInStream.tellg() << std::endl; 
-
         byte nextByte = 0;
-        int followSize = mDataHeader.followSize;
-        std::cout << "Follow size: " << (int)mDataHeader.followSize << std::endl; 
+        int followSize = mDataHeader.FollowSize;
+        std::cout << "Follow size: " << (int)mDataHeader.FollowSize << std::endl; 
         
         while (followSize--) {
             nextByte = gif->mInStream.get();
@@ -62,7 +62,7 @@ namespace GIF
                 mData.push_back(nextByte);
             }
 
-            nextByte = gif->mInStream.get();
+            std::cout << "Next Byte: " << (int)nextByte << std::endl;
         }
 
         std::cout << (size_t)gif->mInStream.tellg() << std::endl; 
@@ -82,8 +82,9 @@ namespace GIF
             gif->mInStream.read(reinterpret_cast<char*>(&extensionCheck), sizeof(byte) * sizeof(ExtensionHeader));
 
             // If the dummy header contains an introducer for a extension, load the extension type
-            if (extensionCheck.introducer == EXTENSION_INTRODUCER) {
+            if (extensionCheck.Introducer == EXTENSION_INTRODUCER) {
                 LoadExtension(gif, extensionCheck);
+                gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2);
             } else {
                 // Restore filepos to where it was before the extension check was loaded
                 gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2);
@@ -94,20 +95,20 @@ namespace GIF
 
     void Image::LoadExtension(File* const gif, const ExtensionHeader& headerCheck)
     {
-        switch (headerCheck.label) {
+        switch (headerCheck.Label) {
             case ExtensionLabel::PlainText:
             {
                 LOG_INFO << "Loading plain text extension" << std::endl;
 
                 // Load Header
-                mExtensions.plainText = {};
-                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.plainText.header), sizeof(byte) * sizeof(ExtensionHeader));
+                mExtensions.PlainText = {};
+                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.PlainText.Header), sizeof(byte) * sizeof(ExtensionHeader));
 
                 // Load the block size into the struct and load the data of that size into the data buffer
-                mExtensions.plainText.blockSize = gif->mInStream.get();
+                mExtensions.PlainText.BlockSize = gif->mInStream.get();
 
-                mExtensions.plainText.data = new byte[mExtensions.plainText.blockSize];
-                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.plainText.data), sizeof(byte) * mExtensions.plainText.blockSize);
+                mExtensions.PlainText.Data = new byte[mExtensions.PlainText.BlockSize];
+                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.PlainText.Data), sizeof(byte) * mExtensions.PlainText.BlockSize);
 
                 LOG_INFO << "End of plain text extension" << std::endl;
                 break;
@@ -117,13 +118,13 @@ namespace GIF
                 LOG_INFO << "Loading graphics control extension" << std::endl;
 
                 // Load The entire Graphic Control Extension
-                mExtensions.graphicsControl = {};
-                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.graphicsControl), sizeof(byte) * sizeof(GCE));
+                mExtensions.GraphicsControl = {};
+                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.GraphicsControl), sizeof(byte) * sizeof(GCE));
                 
                 // Check for transparency
-                if ((mExtensions.graphicsControl.packed >> (byte)GCEMask::TransparentColor) & 0x01) {
+                if ((mExtensions.GraphicsControl.Packed >> (byte)GCEMask::TransparentColor) & 0x01) {
                     mTransparent = true;
-                    mTransparentColorIndex = mExtensions.graphicsControl.transparentColorIndex;
+                    mTransparentColorIndex = mExtensions.GraphicsControl.TransparentColorIndex;
 
                     LOG_INFO << "Transparent flag set in image" << std::endl;
                     LOG_INFO << "Tranparent Color Index: " << (int)mTransparentColorIndex << std::endl;
@@ -139,14 +140,14 @@ namespace GIF
                 LOG_INFO << "Loading comment extension" << std::endl;
 
                 // Load Header
-                mExtensions.comment = {};
-                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.comment.header), sizeof(byte) * sizeof(ExtensionHeader));
+                mExtensions.Comment = {};
+                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.Comment.Header), sizeof(byte) * sizeof(ExtensionHeader));
 
                 // Read into the data section until a null terminator is hit
                 byte nextByte = 0;
                 for (int i = 0; nextByte != 0x00; i++) {
                     nextByte = gif->mInStream.get();
-                    mExtensions.comment.data.push_back(nextByte);
+                    mExtensions.Comment.Data.push_back(nextByte);
                 }
 
                 LOG_INFO << "End of comment extension" << std::endl;
@@ -157,21 +158,21 @@ namespace GIF
                 LOG_INFO << "Loading application extension" << std::endl;
 
                 // Load Header
-                mExtensions.application = ApplicationExtension(); 
-                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.application.header), sizeof(byte) * sizeof(ExtensionHeader));
+                mExtensions.Application = ApplicationExtension(); 
+                gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.Application.Header), sizeof(byte) * sizeof(ExtensionHeader));
 
                 // Load the Block Length
-                mExtensions.application.blockLength = gif->mInStream.get();
+                mExtensions.Application.BlockLength = gif->mInStream.get();
 
                 // Load Application Identifier
-                mExtensions.application.identifier = new byte[mExtensions.application.blockLength];
-                gif->mInStream.read(reinterpret_cast<char*>(mExtensions.application.identifier), sizeof(byte) * mExtensions.application.blockLength);
+                mExtensions.Application.Identifier = new byte[mExtensions.Application.BlockLength];
+                gif->mInStream.read(reinterpret_cast<char*>(mExtensions.Application.Identifier), sizeof(byte) * mExtensions.Application.BlockLength);
                 
                 // Load the authentication code
                 byte tmp = 0;
                 tmp = gif->mInStream.get();
-                mExtensions.application.authenticationCode = new byte[tmp];
-                gif->mInStream.read(reinterpret_cast<char*>(mExtensions.application.authenticationCode), sizeof(byte) * tmp);
+                mExtensions.Application.AuthenticationCode = new byte[tmp];
+                gif->mInStream.read(reinterpret_cast<char*>(mExtensions.Application.AuthenticationCode), sizeof(byte) * tmp);
 
                 // Check if the next byte in the file is the terminator
                 tmp = gif->mInStream.get();
@@ -182,7 +183,7 @@ namespace GIF
             }
             default:
             {
-                LOG_ERROR << "Recived invalid extension type [" << (int)headerCheck.label <<  "]" << std::endl;
+                LOG_ERROR << "Recived invalid extension type [" << (int)headerCheck.Label <<  "]" << std::endl;
                 gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2); // Restore the file position to where it was after reading header
                 break;
             }
@@ -193,7 +194,7 @@ namespace GIF
     {
         // Because each gif can have a different disposal method for different frames (according to GIF89a)
         // it is best to handle each disposal method instread of printing the decompressed codestream directly
-        int disposalMethod = ((mExtensions.graphicsControl.packed >> (byte)GCEMask::Disposal) & 0x07);
+        int disposalMethod = ((mExtensions.GraphicsControl.Packed >> (byte)GCEMask::Disposal) & 0x07);
         switch (disposalMethod) {
             case 0:
                 break;
@@ -225,7 +226,7 @@ namespace GIF
         for (int row = 0; row < mDescriptor.Height; row++) {
             for (int col = 0; col < mDescriptor.Width; col++) {
                 if ((size_t)currentChar + 1 <= rasterData.size()) {
-                    offset = ((row + mDescriptor.Top) * gif->mLSD.width) + (col + mDescriptor.Left);
+                    offset = ((row + mDescriptor.Top) * gif->mLSD.Width) + (col + mDescriptor.Left);
                     pixelMap.at(offset) = rasterData.at(currentChar);
                     currentChar++;
                 }
@@ -241,8 +242,8 @@ namespace GIF
         int offset = 0;
         for (int row = 0; row < mDescriptor.Height; row++ ) {
             for (int col = 0; col < mDescriptor.Left; col++) {
-                offset = ((row + mDescriptor.Top) * gif->mLSD.width) + (col + mDescriptor.Left);
-                pixelMap.at(offset) = codeTable[gif->mLSD.backgroundColorIndex][0]; 
+                offset = ((row + mDescriptor.Top) * gif->mLSD.Width) + (col + mDescriptor.Left);
+                pixelMap.at(offset) = codeTable[gif->mLSD.BackgroundColorIndex][0]; 
             }
         } 
     }
@@ -271,8 +272,8 @@ namespace GIF
     void Image::PrintData()
     {
         Debug::Print("\n------- Image Data -------");
-        Debug::Print("LZW Minimum: 0x%X", mDataHeader.lzwMinimum);
-        Debug::Print("Initial Follow Size: 0x%X", mDataHeader.followSize);
+        Debug::Print("LZW Minimum: 0x%X", mDataHeader.LzwMinimum);
+        Debug::Print("Initial Follow Size: 0x%X", mDataHeader.FollowSize);
         Debug::Print("--------------------------");
     }
 

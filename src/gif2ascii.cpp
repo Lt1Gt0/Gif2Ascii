@@ -18,7 +18,7 @@ int main(int argc, char** argv)
         error(Severity::high, "Usage:", "./gif2Ascii <filepath>");
 
     // Attempt to load GIF
-    GIF::File gif = GIF::File(argv[1]);
+    GIF::File gif(argv[1]);
     gif.DumpInfo("logs/dump");
 
     GIF::LoopFrames(&gif);
