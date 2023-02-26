@@ -41,7 +41,7 @@ namespace GIF
             int frameIdx = 0;
             
             // Because image data is generic, typecast it to an Image*
-            Image* imgData = (Image*)gif->mImageData[frameIdx];
+            Image* imgData = reinterpret_cast<Image*>(gif->mImageData[frameIdx]);
 
             // if (useLCT) (TODO)
             
@@ -73,7 +73,7 @@ namespace GIF
                     } 
                 } 
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(imgData->mExtensions.GraphicsControl.DelayTime * 10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(imgData->mExtensions.GraphicsControl.DelayTime * 100));
                 frameIdx++;
                 system("clear");
             } 

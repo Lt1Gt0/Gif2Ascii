@@ -15,7 +15,6 @@
 
 namespace GIF
 {
-
     class File
     {
         public:

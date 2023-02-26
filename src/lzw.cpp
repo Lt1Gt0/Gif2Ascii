@@ -7,6 +7,12 @@ namespace LZW
 {
     std::string Decompress(const GIF::ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream)
     {
+        // for (byte b : codestream) {
+        //     Debug::Print("%02X", b);
+        // }
+        // exit(1);
+
+
         if (codestream.size() <= 0)
             return "";
 

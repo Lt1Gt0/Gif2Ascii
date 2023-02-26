@@ -24,14 +24,20 @@ namespace GIF
             LOG_INFO << "Local Color Table flag not set" << std::endl;
 
         // Load the image header into memory
-        Debug::Print("%02X", (size_t)gif->mInStream.tellg());
-        Debug::Print("%02X\n", (size_t)gif->mInStream.peek());
+        Debug::Print("Current File Pos: %02X", gif->mInStream.tellg());
         gif->mInStream.read(reinterpret_cast<char*>(&mDataHeader), sizeof(byte) * sizeof(ImageDataHeader)); // Only read 2 bytes of file steam for LZW min and Follow Size 
+        Debug::Print("Sizeof dataheader (b): %d", sizeof(ImageDataHeader) * sizeof(byte));
+
+        Debug::Print("Current File Pos: %02X", gif->mInStream.tellg());
+        Debug::Print("Image Header:");
+        Debug::Print("  Follow Size: %02X", mDataHeader.FollowSize);
+        Debug::Print("  LZW Minimum: %02X", mDataHeader.LzwMinimum);
+
+
         ReadDataSubBlocks(gif);
 
         // Get the raster data from the image frame by decompressing the data block from the gif
-        std::string rasterData = LZW::Decompress(mDataHeader, mColorTableSize, mData);
-        return rasterData;
+        return LZW::Decompress(mDataHeader, mColorTableSize, mData);
     }
 
     void Image::ReadDataSubBlocks(File* const gif)
@@ -40,9 +46,10 @@ namespace GIF
         // while loop seems like it can be simplified for the first iteration
         // regarding the followSize
         
+        LOG_INFO << "Loading Data sub blocks" << std::endl;
+
         byte nextByte = 0;
         int followSize = mDataHeader.FollowSize;
-        std::cout << "Follow size: " << (int)mDataHeader.FollowSize << std::endl; 
         
         while (followSize--) {
             nextByte = gif->mInStream.get();
@@ -61,13 +68,11 @@ namespace GIF
                 nextByte = gif->mInStream.get();
                 mData.push_back(nextByte);
             }
-
-            std::cout << "Next Byte: " << (int)nextByte << std::endl;
         }
 
-        std::cout << (size_t)gif->mInStream.tellg() << std::endl; 
         // TODO
         // Print out the compressed stream of data 
+        LOG_SUCCESS << "Loaded Data sub blocks" << std::endl;
     }
 
     void Image::CheckExtensions(File* const gif)
@@ -83,8 +88,8 @@ namespace GIF
 
             // If the dummy header contains an introducer for a extension, load the extension type
             if (extensionCheck.Introducer == EXTENSION_INTRODUCER) {
-                LoadExtension(gif, extensionCheck);
                 gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2);
+                LoadExtension(gif, extensionCheck);
             } else {
                 // Restore filepos to where it was before the extension check was loaded
                 gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2);
