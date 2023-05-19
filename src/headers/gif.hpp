@@ -1,14 +1,14 @@
 #pragma once
 //#include "image.h"
-#ifndef _GIF_H
-#define _GIF_H
+#ifndef _GIF_HPP_
+#define _GIF_HPP_
 
 #include <vector>
 #include <stdio.h>
 #include <exception>
 #include <fstream>
 #include <string>
-#include "gifmeta.h"
+#include "gifmeta.hpp"
 //#include "image.h"
 
 #define UNUSED __attribute__((unused))
@@ -58,6 +58,8 @@ namespace GIF
             // Return the charstream given after decompression
             void UpdatePixelMap(UNUSED File* const gif, UNUSED const std::string& rasterData, std::vector<char> pixMap, UNUSED std::vector<char> prevPixMap);
 
+            void DumpInfo(std::string dumpPath);
+
             Color*              mColorTable;
             ImageDescriptor     mDescriptor;
             ImageDataHeader     mDataHeader;
@@ -83,4 +85,4 @@ namespace GIF
     };
 }
 
-#endif // _GIF_H
+#endif // _GIF_HPP_

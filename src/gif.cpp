@@ -1,8 +1,8 @@
-#include "gif.h"
-#include "common.h"
-#include "logger.h"
-#include "gifmeta.h"
-#include "lzw.h"
+#include "gif.hpp"
+#include "common.hpp"
+#include "logger.hpp"
+#include "gifmeta.hpp"
+#include "lzw.hpp"
 
 #include <cstdint>
 #include <unistd.h>

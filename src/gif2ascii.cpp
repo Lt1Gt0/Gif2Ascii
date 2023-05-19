@@ -1,6 +1,10 @@
-#include "gif.h"
-#include "display.h"
-#include "logger.h"
+#include "gif.hpp"
+#include "display.hpp"
+#include "logger.hpp"
+
+#include "pixel.hpp"
+
+#include <stdio.h>
 
 /*
     The current version of this converter only works on gif89a not gif87a
@@ -19,7 +23,10 @@ int main(int argc, char** argv)
 
     // Attempt to load GIF
     GIF::File gif(argv[1]);
+
+    #ifdef DBG
     gif.DumpInfo("logs/dump");
+    #endif
 
     GIF::LoopFrames(&gif);
 

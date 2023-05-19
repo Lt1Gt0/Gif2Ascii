@@ -1,11 +1,11 @@
-#include "gif.h"
-#include "gifmeta.h"
+#include "gif.hpp"
+#include "gifmeta.hpp"
 
 #include <cstdint>
 #include <stdio.h>
 #include <unordered_map>
-#include "lzw.h"
-#include "logger.h"
+#include "lzw.hpp"
+#include "logger.hpp"
 
 namespace GIF
 {
@@ -290,5 +290,42 @@ namespace GIF
             fprintf(stdout, "%X ", block->at(i));
         }
         Debug::Print("\n--------------------------");
+    }
+
+    void Image::DumpInfo(std::string dumpPath)
+    {
+        std::ofstream dump (dumpPath);
+        
+        if (!dump.is_open())
+            error(Severity::medium, "GIF:", "Unable to open dump file");
+        
+        // Header information
+        // dump << "File: " << mPath << std::endl;
+        // dump << "Version: " << mHeader.Version[0] << mHeader.Version[1] << mHeader.Version[2] << std::endl;
+
+        // // Logical Screen Descriptor
+        // dump << "LSD Width: " << (int)mLSD.Width << std::endl; 
+        // dump << "LSD Height: " << (int)mLSD.Height << std::endl; 
+        // dump << "GCTD Present: " << (int)((mLSD.Packed >> (byte)LSDMask::GlobalColorTable) & 0x1) << std::endl;
+        // dump << "LSD Background Color Index: " << (int)mLSD.BackgroundColorIndex << std::endl; 
+        // dump << "LSD Pixel Aspect Ratio: " << (int)mLSD.PixelAspectRatio << std::endl; 
+
+        // // GCTD / GCT
+        // if ((mLSD.Packed >> (byte)LSDMask::GlobalColorTable) & 0x1) {
+        //     dump << "GCT Size: " << (int)mGCTD.SizeInLSD << std::endl;
+        //     dump << "GCT Color Count: " << (int)mGCTD.ColorCount << std::endl;
+        //     dump << "GCT Size in bytes: " << (int)mGCTD.ByteLength << std::endl;
+        //     
+        //     dump.setf(std::ios::hex, std::ios::basefield);    
+        //     for (int i = 0; i < mGCTD.ColorCount; i++) {
+        //             dump << "\tRed: " << std::uppercase << (int)mGCT[i].Red << std::endl;
+        //             dump << "\tGreen: " << std::uppercase << (int)mGCT[i].Green << std::endl;
+        //             dump << "\tBlue: " << std::uppercase << (int)mGCT[i].Blue << std::endl;
+        //             dump << std::endl;
+        //     } 
+        //     dump.unsetf(std::ios::hex);
+        // }
+            
+        dump.close();
     }
 }

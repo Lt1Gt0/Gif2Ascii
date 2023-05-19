@@ -1,10 +1,11 @@
 #pragma once
-#ifndef _GIF_META_H
-#define _GIF_META_H
+#ifndef _GIF_META_HPP_
+#define _GIF_META_HPP_
 
 #include <stdint.h>
 #include <vector>
-#include "common.h"
+#include <stdio.h>
+#include "common.hpp"
 
 #define PACKED __attribute__((packed))
 
@@ -83,6 +84,13 @@ namespace GIF
         byte Red;
         byte Blue;
         byte Green;
+
+        char* ToString() 
+        {
+            char* colorStr = new char[50];
+            sprintf(colorStr, "(%d, %d, %d)", Red, Green, Blue); 
+            return colorStr;
+        }
     };
 
     struct PACKED ImageDescriptor {
@@ -178,4 +186,4 @@ namespace GIF
     };
 }
 
-#endif // _GIF_META_H
+#endif // _GIF_META_HPP_

@@ -1,7 +1,8 @@
-#include "display.h"
-#include "logger.h"
-#include "common.h"
-#include "lzw.h"
+#include "display.hpp"
+#include "logger.hpp"
+#include "common.hpp"
+#include "lzw.hpp"
+#include "pixel.hpp"
 
 #include <signal.h>
 #include <unordered_map>
@@ -9,9 +10,30 @@
 #include <tgmath.h>
 #include <thread>
 #include <chrono>
+#include <termios.h>
+#include <unistd.h>
 
 namespace GIF
 { 
+    termios gOrigTerm;
+    termios gCurrentTerm;
+
+    void InitializeTerminal()
+    {
+        // Get initial terminal attributes
+        tcgetattr(STDOUT_FILENO, &gOrigTerm);
+
+        // Set new termial attributes
+        // gCurrentTerm = gOrigTerm;
+        // gCurrentTerm.c_iflag 
+    }
+
+    void ResetTerminal()
+    {
+        tcsetattr(STDOUT_FILENO, 0, &gOrigTerm);
+    }
+
+
     void SigIntHandler(int sig)
     {
         system("clear");        
@@ -26,11 +48,14 @@ namespace GIF
          * it into a seperate file before drawing
          */
 
+        LOG_DEBUG << "Looping Frames" << std::endl;
+
         signal(SIGINT, SigIntHandler);
         std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mGCTD.ColorCount);
         
         Color* colorTable = nullptr;
         bool useLCT = false;
+
         if ((gif->mLSD.Packed >> (int)LSDMask::GlobalColorTable) & 0x1)
             colorTable = gif->mGCT;
         else 
@@ -45,6 +70,7 @@ namespace GIF
 
             // if (useLCT) (TODO)
             
+            FILE* output = stdout;
             for (std::vector<char> frame : gif->mFrameMap) {
                 int col = 0;
                 for (char c : frame) {
@@ -57,19 +83,19 @@ namespace GIF
                         break; 
                     }
                     
+                    LOG_DEBUG << "C: " << c << std::endl;
                     Color color = colorTable[(int)c];
                     if (imgData->mTransparent && c == imgData->mTransparentColorIndex)
                         color = colorTable[imgData->mTransparentColorIndex - 1];
-                    
-                    fprintf(stdout, "\x1b[38;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
-                    fprintf(stdout, "\x1b[48;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
-                    fprintf(stdout, "%c", ColorToChar(color));
-                    fprintf(stdout, "\x1b[0m");
+
+                    GIF::Pixel p = Pixel(ColorToChar(color), color);
+                    p.PrintColor(output);
+
                     col++;
 
                     if (col >= gif->mLSD.Width) {
                         col = 0;
-                        fprintf(stdout, "\n"); 
+                        fprintf(output, "\n"); 
                     } 
                 } 
 
@@ -79,6 +105,7 @@ namespace GIF
             } 
         }
     }
+
 
     char ColorToChar(const Color& color)
     {

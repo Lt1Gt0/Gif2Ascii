@@ -1,13 +1,13 @@
 #pragma once
-#ifndef _DEBUG_H
-#define _DEBUG_H
+#ifndef _DEBUG_HPP_
+#define _DEBUG_HPP_
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <iostream>
-#include "logger.h"
+#include "logger.hpp"
 
 typedef uint8_t byte;
 
@@ -58,4 +58,4 @@ namespace Debug
     }
 }
 
-#endif // _DEBUG_H
+#endif // _DEBUG_HPP_

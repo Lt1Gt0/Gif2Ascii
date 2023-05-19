@@ -1,17 +1,43 @@
-#include "lzw.h"
+#include "lzw.hpp"
 #include <stdio.h>
 #include <string>
 #include <math.h>
+#include <fstream>
+#include <stdio.h>
 
 namespace LZW
 {
+    void DumpStream(std::vector<byte> stream, const char* filepath = "logs/lzw.log")
+    {
+        std::ofstream dump(filepath, std::ios::out | std::ios::binary | std::ios::app);
+
+        char* buf = new char[sizeof(byte) * 3];
+        for (byte b : stream) {
+            sprintf(buf, "%02X", b);
+            dump << buf << " ";
+        }
+
+        dump << std::endl;
+        dump.close();
+    }
+
+    void DumpTable(std::unordered_map<int, std::string> table, const char* filepath = "logs/lzw.log")
+    {
+        std::ofstream dump(filepath, std::ios::out | std::ios::binary | std::ios::app);
+
+        dump << "Table size: " << table.size() << std::endl;
+        for (size_t i = 0; i < table.size(); i++) {
+            dump << i << ": " << table[i].data() << std::endl;
+        }
+
+        dump.close();
+    }
+
     std::string Decompress(const GIF::ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream)
     {
-        // for (byte b : codestream) {
-        //     Debug::Print("%02X", b);
-        // }
-        // exit(1);
-
+        #ifdef DBG
+        DumpStream(codestream);
+        #endif
 
         if (codestream.size() <= 0)
             return "";
@@ -22,17 +48,23 @@ namespace LZW
         std::string charstream = ""; 
         table = InitializeCodeTable(colorTableSize);
 
-        int offset, newCode, oldCode, codesize, i;
-        offset = 0, i = 0;
-        codesize = imgHeader.LzwMinimum + 1;
+        int offset = 0;
+        int i = 0;
+        int codesize = imgHeader.LzwMinimum + 1;
 
-        newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+        int newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+        int oldCode;
+
         offset += codesize;
 
         // Check for clearcode
         if (newCode == 4) {
             Debug::Print("Encountered Clear Code...");
             table = InitializeCodeTable(colorTableSize);
+
+            #ifdef DBG
+            DumpTable(table);
+            #endif
         }
 
         newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
@@ -69,6 +101,11 @@ namespace LZW
 
             if (table[newCode][0] == char(colorTableSize + 1)) {
                 Debug::Print("\nReinitializing Code table...");
+
+                #ifdef DBG
+                DumpTable(table);
+                #endif
+
                 table = InitializeCodeTable(colorTableSize);
             }
 
@@ -82,7 +119,6 @@ namespace LZW
                 codesize++;
         }
 
-        // printf("%s\n", charstream);
         return charstream;
     }
 

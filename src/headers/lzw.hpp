@@ -1,14 +1,14 @@
 #pragma once
-#ifndef _LZW_H
-#define _LZW_H
+#ifndef _LZW_HPP_
+#define _LZW_HPP_
 
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
 #include <string>
 
-#include "gifmeta.h"
-#include "common.h"
+#include "gifmeta.hpp"
+#include "common.hpp"
 
 namespace LZW 
 {
@@ -25,4 +25,4 @@ namespace LZW
     std::unordered_map<int, std::string> InitializeCodeTable(const byte colorTableSize);
 }
 
-#endif // _LZW_H
+#endif // _LZW_HPP_

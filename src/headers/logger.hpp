@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _LOGGER_H
-#define _LOGGER_H
+#ifndef _LOGGER_HPP_
+#define _LOGGER_HPP_
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -114,4 +114,4 @@ class Logger
         std::ofstream mStream;
 };
 
-#endif // _LOGGER_H
+#endif // _LOGGER_HPP_
