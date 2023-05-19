@@ -1,6 +1,7 @@
 #include "gif.hpp"
-#include "common.hpp"
-#include "logger.hpp"
+#include "utils/error.hpp"
+#include "utils/logger.hpp"
+#include "utils/types.hpp"
 #include "gifmeta.hpp"
 #include "lzw.hpp"
 
@@ -26,20 +27,20 @@ namespace GIF
         if (!mFileBuffer)
             error(Severity::high, "GIF:", "Unable to open file - ", mPath);
         else 
-            LOG_SUCCESS << "Opened [" << mPath << "]" << std::endl;
+            logger.Log(SUCCESS, "Opened [%s]", mPath.c_str());
 
         // Get the file size and restore the file pointer back to position 0
         mFileSize = mFileBuffer->pubseekoff(0, mInStream.end, mInStream.in);
         mFileBuffer->pubseekpos(0, mInStream.in);
         mCurrentFilePos = mInStream.tellg(); 
-        LOG_DEBUG << "Total file size: " << (mFileSize / 1024) << "kB (" << mFileSize << " B)" << std::endl;
+        logger.Log(DEBUG, "Total file size: %dkB (%db)", mFileSize / 1024, mFileSize);
 
         Read();
 
         mFileBuffer->close();
         mInStream.close();
 
-        LOG_DEBUG << "Buffered GIF Data" << std::endl;
+        logger.Log(SUCCESS, "Buffered GIF Data");
     }
 
     File::~File() {}
@@ -56,13 +57,13 @@ namespace GIF
             !(strncmp(mHeader.Version, GIF_87A, 3) || strncmp(mHeader.Version, GIF_89A, 3)))
             return Status::failure;
 
-        LOG_SUCCESS << "Parsed GIF Header" << std::endl;
+        logger.Log(SUCCESS, "Parsed GIF Header");
         return Status::success;
     }
 
     void File::Read()
     {
-        LOG_INFO << "Reading GIF Information" << std::endl;
+        logger.Log(INFO, "Reading GIF Information");
         
         if (ParseHeader() == Status::failure)
             error(Severity::high, "GIF:", "Unable to parse header");
@@ -70,19 +71,19 @@ namespace GIF
         ParseLSD();
         GenerateFrameMap();
 
-        LOG_SUCCESS << "Read GIF Information" << std::endl;
+        logger.Log(SUCCESS, "Read GIF Information");
     }
 
     Status File::ParseLSD()
     {
-        LOG_INFO << "Attempting to load Logical Screen Descriptor" << std::endl;
+        logger.Log(INFO, "Attempting to load Logical Screen Descriptor");
 
         //Load the LSD From GIF File 
         mInStream.read(reinterpret_cast<char*>(&mLSD), sizeof(byte) * sizeof(LSD));
 
         // Check to see if the GCT flag is set
         if (mLSD.Packed >> (int)LSDMask::GlobalColorTable) {
-            LOG_INFO << "GCTD Present - Loading GCTD" << std::endl;
+            logger.Log(INFO, "GCTD Presented - Loading GCTD");
 
             mGCTD = {};
             mGCTD.SizeInLSD = (mLSD.Packed >> (byte)LSDMask::Size) & 0x07;
@@ -97,16 +98,16 @@ namespace GIF
                 mGCT[i] = color; 
             }
 
-            LOG_SUCCESS << "Loaded GCTD" << std::endl;
+            logger.Log(SUCCESS, "Loaded GCTD");
         } 
 
-        LOG_SUCCESS << "Logical Screen Descriptor Initialized" << std::endl;
+        logger.Log(SUCCESS, "Logical Screen Descriptor Initialized");
         return Status::success;
     }
 
     Status File::GenerateFrameMap()
     {
-        LOG_INFO << "Generating Frame Map" << std::endl;
+        logger.Log(INFO, "Generating Frame Map");
         
         // The pixel map will be initialized as a single vector
         // to mimic a two dimensional array, elements are accessed like so
@@ -122,7 +123,7 @@ namespace GIF
             img.CheckExtensions(this);
             
             // Load the decompressed image data and draw the frame
-            LOG_INFO << "Loading Image Data" << std::endl;
+            logger.Log(INFO, "Loading Image Data");
             std::string rasterData = img.LoadData(this);
 
             prevPixelMap = pixelMap; 
@@ -134,9 +135,9 @@ namespace GIF
             // Check if the file ended correctly (should end on 0x3B)
             if ((size_t)mInStream.tellg() == mFileSize - 1) {
                 if (nextByte == TRAILER)
-                    LOG_SUCCESS << "File ended naturally" << std::endl;
+                    logger.Log(SUCCESS, "File ended naturally");
                 else
-                    LOG_WARN << "File ended unaturally with byte [" << nextByte << "]" << std::endl;
+                    logger.Log(WARNING, "File ended unaturally with byte [%02X]", nextByte);
 
                 // There is nothing left to get from the file so close it
                 mInStream.close();
@@ -144,7 +145,7 @@ namespace GIF
             }
         }
 
-        LOG_SUCCESS << "Generated Frame Map" << std::endl;
+        logger.Log(SUCCESS, "Generated Frame Map");
         return Status::success;
     }
 

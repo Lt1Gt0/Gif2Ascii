@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <vector>
 #include <stdio.h>
-#include "common.hpp"
+#include "utils/types.hpp"
 
 #define PACKED __attribute__((packed))
 

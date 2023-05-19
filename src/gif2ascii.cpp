@@ -1,6 +1,7 @@
 #include "gif.hpp"
 #include "display.hpp"
-#include "logger.hpp"
+#include "utils/logger.hpp"
+#include "utils/error.hpp"
 
 #include "pixel.hpp"
 
@@ -16,7 +17,7 @@ Logger logger;
 int main(int argc, char** argv)
 {
     // Initialize logger
-    LOG_INIT("logs/", "info")
+    logger = Logger("logs/", "info");
         
     if (argc < 2)
         error(Severity::high, "Usage:", "./gif2Ascii <filepath>");

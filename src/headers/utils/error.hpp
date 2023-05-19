@@ -1,19 +1,14 @@
 #pragma once
-#ifndef _DEBUG_HPP_
-#define _DEBUG_HPP_
+#ifndef _ERROR_HPP_
+#define _ERROR_HPP_
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <iostream>
-#include "logger.hpp"
-
-typedef uint8_t byte;
-
-// GIF Specs use 'unsigned' to represent 2 bytes but on some
-// machines it is 4 bytes, so I will just call it 'word' for simplicity
-typedef uint16_t word;
+#include "utils/logger.hpp"
+#define OPT [[maybe_unused]]
 
 enum class Severity {
     low = 0,
@@ -23,7 +18,7 @@ enum class Severity {
 
 inline void error(Severity severity)
 {
-    LOG_ERROR << "Exiting with severity: " << (int)severity << std::endl;
+    logger.Log(ERROR, "Exiting with severity: %d", (int)severity);
     std::cerr << '\n';
     std::exit((int)severity);
 }
@@ -58,4 +53,4 @@ namespace Debug
     }
 }
 
-#endif // _DEBUG_HPP_
+#endif // _ERROR_HPP_

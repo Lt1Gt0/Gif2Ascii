@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <unordered_map>
 #include "lzw.hpp"
-#include "logger.hpp"
+#include "utils/logger.hpp"
+#include "utils/error.hpp"
 
 namespace GIF
 {
@@ -19,19 +20,19 @@ namespace GIF
 
         // TODO - Add support for LCT in GIFS that require it
         if ((mDescriptor.Packed >> (byte)ImgDescMask::LocalColorTable) & 0x1)
-            LOG_INFO << "Loading Local Color Table" << std::endl;
+            logger.Log(INFO, "Loading Local Color Table"); 
         else
-            LOG_INFO << "Local Color Table flag not set" << std::endl;
+            logger.Log(INFO, "Local Color Table flag not set"); 
 
         // Load the image header into memory
-        Debug::Print("Current File Pos: %02X", gif->mInStream.tellg());
+        logger.Log(DEBUG, "Current File Pos: %02X", gif->mInStream.tellg());
         gif->mInStream.read(reinterpret_cast<char*>(&mDataHeader), sizeof(byte) * sizeof(ImageDataHeader)); // Only read 2 bytes of file steam for LZW min and Follow Size 
-        Debug::Print("Sizeof dataheader (b): %d", sizeof(ImageDataHeader) * sizeof(byte));
+        logger.Log(DEBUG, "Sizeof dataheader (b): %d", sizeof(ImageDataHeader) * sizeof(byte));
 
-        Debug::Print("Current File Pos: %02X", gif->mInStream.tellg());
-        Debug::Print("Image Header:");
-        Debug::Print("  Follow Size: %02X", mDataHeader.FollowSize);
-        Debug::Print("  LZW Minimum: %02X", mDataHeader.LzwMinimum);
+        logger.Log(DEBUG, "Current File Pos: %02X", gif->mInStream.tellg());
+        logger.Log(DEBUG, "Image Header:");
+        logger.Log(DEBUG, "  Follow Size: %02X", mDataHeader.FollowSize);
+        logger.Log(DEBUG, "  LZW Minimum: %02X", mDataHeader.LzwMinimum);
 
 
         ReadDataSubBlocks(gif);
@@ -46,7 +47,7 @@ namespace GIF
         // while loop seems like it can be simplified for the first iteration
         // regarding the followSize
         
-        LOG_INFO << "Loading Data sub blocks" << std::endl;
+        logger.Log(INFO, "Loading Data sub blocks"); 
 
         byte nextByte = 0;
         int followSize = mDataHeader.FollowSize;
@@ -72,12 +73,12 @@ namespace GIF
 
         // TODO
         // Print out the compressed stream of data 
-        LOG_SUCCESS << "Loaded Data sub blocks" << std::endl;
+        logger.Log(SUCCESS, "Loaded Data sub blocks"); 
     }
 
     void Image::CheckExtensions(File* const gif)
     {
-        LOG_INFO << "Checking for extensions" << std::endl;
+        logger.Log(INFO, "Checking for extensions"); 
 
         // Allocate space in memory for an extension header
         ExtensionHeader extensionCheck = {};
@@ -103,7 +104,7 @@ namespace GIF
         switch (headerCheck.Label) {
             case ExtensionLabel::PlainText:
             {
-                LOG_INFO << "Loading plain text extension" << std::endl;
+                logger.Log(INFO, "Loading plain text extension"); 
 
                 // Load Header
                 mExtensions.PlainText = {};
@@ -115,12 +116,12 @@ namespace GIF
                 mExtensions.PlainText.Data = new byte[mExtensions.PlainText.BlockSize];
                 gif->mInStream.read(reinterpret_cast<char*>(&mExtensions.PlainText.Data), sizeof(byte) * mExtensions.PlainText.BlockSize);
 
-                LOG_INFO << "End of plain text extension" << std::endl;
+                logger.Log(INFO, "End of plain text extension"); 
                 break;
             }
             case ExtensionLabel::GraphicsControl:
             {
-                LOG_INFO << "Loading graphics control extension" << std::endl;
+                logger.Log(INFO, "Loading graphics control extension"); 
 
                 // Load The entire Graphic Control Extension
                 mExtensions.GraphicsControl = {};
@@ -131,18 +132,18 @@ namespace GIF
                     mTransparent = true;
                     mTransparentColorIndex = mExtensions.GraphicsControl.TransparentColorIndex;
 
-                    LOG_INFO << "Transparent flag set in image" << std::endl;
-                    LOG_INFO << "Tranparent Color Index: " << (int)mTransparentColorIndex << std::endl;
+                    logger.Log(INFO, "Transparent flag set in image"); 
+                    logger.Log(INFO, "Tranparent Color Index: %d", (int)mTransparentColorIndex);
                 } else {
-                    LOG_INFO << "Transparent flag not set" << std::endl; 
+                    logger.Log(INFO, "Transparent flag not set" ); 
                 }
                 
-                LOG_INFO << "End of graphics control extension" << std::endl;
+                logger.Log(INFO, "End of graphics control extension"); 
                 break;
             }
             case ExtensionLabel::Comment:
             {
-                LOG_INFO << "Loading comment extension" << std::endl;
+                logger.Log(INFO, "Loading comment extension"); 
 
                 // Load Header
                 mExtensions.Comment = {};
@@ -155,12 +156,12 @@ namespace GIF
                     mExtensions.Comment.Data.push_back(nextByte);
                 }
 
-                LOG_INFO << "End of comment extension" << std::endl;
+                logger.Log(INFO, "End of comment extension"); 
                 break;
             }
             case ExtensionLabel::Application:
             {
-                LOG_INFO << "Loading application extension" << std::endl;
+                logger.Log(INFO, "Loading application extension"); 
 
                 // Load Header
                 mExtensions.Application = ApplicationExtension(); 
@@ -182,13 +183,13 @@ namespace GIF
                 // Check if the next byte in the file is the terminator
                 tmp = gif->mInStream.get();
                 if (!tmp)
-                    LOG_INFO << "End of application extension" << std::endl;
+                    logger.Log(INFO, "End of application extension"); 
 
                 break;
             }
             default:
             {
-                LOG_ERROR << "Recived invalid extension type [" << (int)headerCheck.Label <<  "]" << std::endl;
+                logger.Log(ERROR, "Recived invalid extension type [%d]", (int)headerCheck.Label);
                 gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2); // Restore the file position to where it was after reading header
                 break;
             }
@@ -225,7 +226,7 @@ namespace GIF
 
     void Image::DrawOverImage(File* const gif, const std::string& rasterData, std::vector<char> pixelMap)
     {
-        LOG_INFO << "Drawing over image" << std::endl;
+        logger.Log(INFO, "Drawing over image"); 
         int offset = 0;
         int currentChar = 0;
         for (int row = 0; row < mDescriptor.Height; row++) {
@@ -241,7 +242,7 @@ namespace GIF
 
     void Image::RestoreCanvasToBG(File* const gif, std::vector<char> pixelMap)
     {
-        LOG_INFO << "Restore canvas to background" << std::endl;
+        logger.Log(INFO, "Restore canvas to background"); 
         std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(mColorTableSize);
 
         int offset = 0;
@@ -255,41 +256,41 @@ namespace GIF
 
     void Image::RestoreToPrevState(std::vector<char> pixMap, std::vector<char> prevPixMap)
     {
-        LOG_INFO << "Restore canvas to previous state" << std::endl;
+        logger.Log(INFO, "Restore canvas to previous state"); 
         pixMap = prevPixMap;
     }
 
     void Image::PrintDescriptor()
     {
-        Debug::Print("------- Image Descriptor -------");
-        Debug::Print("Seperator: %X", mDescriptor.Seperator);
-        Debug::Print("Image Left: %d", mDescriptor.Left);
-        Debug::Print("Image Top: %d", mDescriptor.Top);
-        Debug::Print("Image Width: %d", mDescriptor.Width);
-        Debug::Print("Image Height: %d", mDescriptor.Height);
-        Debug::Print("Local Color Table Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::LocalColorTable) & 0x1);
-        Debug::Print("Interlace Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::Interlace) & 0x1);
-        Debug::Print("Sort Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::IMGSort) & 0x1);
-        Debug::Print("Size of Local Color Table: %d", (mDescriptor.Packed >> (byte)ImgDescMask::IMGSize) & 0x7);
-        Debug::Print("--------------------------------");
+        logger.Log(DEBUG, "------- Image Descriptor -------");
+        logger.Log(DEBUG, "Seperator: %X", mDescriptor.Seperator);
+        logger.Log(DEBUG, "Image Left: %d", mDescriptor.Left);
+        logger.Log(DEBUG, "Image Top: %d", mDescriptor.Top);
+        logger.Log(DEBUG, "Image Width: %d", mDescriptor.Width);
+        logger.Log(DEBUG, "Image Height: %d", mDescriptor.Height);
+        logger.Log(DEBUG, "Local Color Table Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::LocalColorTable) & 0x1);
+        logger.Log(DEBUG, "Interlace Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::Interlace) & 0x1);
+        logger.Log(DEBUG, "Sort Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::IMGSort) & 0x1);
+        logger.Log(DEBUG, "Size of Local Color Table: %d", (mDescriptor.Packed >> (byte)ImgDescMask::IMGSize) & 0x7);
+        logger.Log(DEBUG, "--------------------------------");
     }
 
     void Image::PrintData()
     {
-        Debug::Print("\n------- Image Data -------");
-        Debug::Print("LZW Minimum: 0x%X", mDataHeader.LzwMinimum);
-        Debug::Print("Initial Follow Size: 0x%X", mDataHeader.FollowSize);
-        Debug::Print("--------------------------");
+        logger.Log(DEBUG, "\n------- Image Data -------");
+        logger.Log(DEBUG, "LZW Minimum: 0x%X", mDataHeader.LzwMinimum);
+        logger.Log(DEBUG, "Initial Follow Size: 0x%X", mDataHeader.FollowSize);
+        logger.Log(DEBUG, "--------------------------");
     }
 
     void Image::PrintSubBlockData(std::vector<byte>* block)
     {
-        Debug::Print("\n------- Block Data -------");
-        Debug::Print("Size: %ld\n", block->size());
+        logger.Log(DEBUG, "\n------- Block Data -------");
+        logger.Log(DEBUG, "Size: %ld\n", block->size());
         for (int i = 0; i < (int)block->size(); i++) {
             fprintf(stdout, "%X ", block->at(i));
         }
-        Debug::Print("\n--------------------------");
+        logger.Log(DEBUG, "\n--------------------------");
     }
 
     void Image::DumpInfo(std::string dumpPath)

@@ -1,6 +1,6 @@
 #include "display.hpp"
-#include "logger.hpp"
-#include "common.hpp"
+#include "utils/logger.hpp"
+#include "utils/types.hpp"
 #include "lzw.hpp"
 #include "pixel.hpp"
 
@@ -48,7 +48,7 @@ namespace GIF
          * it into a seperate file before drawing
          */
 
-        LOG_DEBUG << "Looping Frames" << std::endl;
+        logger.Log(DEBUG, "Looping Frames");
 
         signal(SIGINT, SigIntHandler);
         std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mGCTD.ColorCount);
@@ -79,11 +79,11 @@ namespace GIF
                         break;
 
                     if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-                        LOG_DEBUG << c << " - End of information" << std::endl;
+                        logger.Log(DEBUG, "%c - End of information", c);
                         break; 
                     }
                     
-                    LOG_DEBUG << "C: " << c << std::endl;
+                    logger.Log(DEBUG, "C: %c", c);
                     Color color = colorTable[(int)c];
                     if (imgData->mTransparent && c == imgData->mTransparentColorIndex)
                         color = colorTable[imgData->mTransparentColorIndex - 1];

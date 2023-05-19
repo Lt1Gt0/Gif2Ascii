@@ -8,7 +8,6 @@
 #include <string>
 
 #include "gifmeta.hpp"
-#include "common.hpp"
 
 namespace LZW 
 {
