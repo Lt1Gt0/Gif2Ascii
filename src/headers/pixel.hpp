@@ -3,16 +3,29 @@
 #define _PIXEL_HPP_
 
 #include <unistd.h>
-
-#include "gifmeta.hpp"
+#include <stdio.h>
+#include "utils/types.hpp"
 
 namespace GIF
 {
+    struct Color {
+        byte red;
+        byte blue;
+        byte green;
+
+        char* ToString() 
+        {
+            char* colorStr = new char[50];
+            sprintf(colorStr, "(%d, %d, %d)", red, green, blue); 
+            return colorStr;
+        }
+    };
+
     struct Pixel {
         Pixel(char sym, Color c);
 
-        char mSymbol;
-        Color mColor;
+        char symbol;
+        Color color;
 
         void PrintColor(FILE* fd = stdout);
         void PrintChar(FILE* fd = stdout);

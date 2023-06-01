@@ -11,9 +11,10 @@
 
 namespace LZW 
 {
+    using namespace GIF::Data::Graphic;
     constexpr int SPECIAL_CODE_COUNT {2};
 
-    std::string Decompress(const GIF::ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream);
+    std::string Decompress(const ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream);
 
     /**
      * Initialize a code table based off the size of a given color table

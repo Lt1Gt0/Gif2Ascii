@@ -8,15 +8,17 @@
 
 namespace LZW
 {
+    using namespace GIF::Data::Graphic;
+
     void DumpStream(std::vector<byte> stream, const char* filepath = "logs/lzw.log")
     {
-        std::ofstream dump(filepath, std::ios::out | std::ios::binary | std::ios::app);
+        std::ofstream dump(filepath, std::ios::out | std::ios::app);
 
-        char* buf = new char[sizeof(byte) * 3];
+        dump.setf(std::ios::hex, std::ios::basefield);    
         for (byte b : stream) {
-            sprintf(buf, "%02X", b);
-            dump << buf << " ";
+            dump << std::uppercase << (int)b << std::endl;
         }
+        dump.unsetf(std::ios::hex);
 
         dump << std::endl;
         dump.close();
@@ -34,7 +36,7 @@ namespace LZW
         dump.close();
     }
 
-    std::string Decompress(const GIF::ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream)
+    std::string Decompress(const ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream)
     {
         #ifdef DBG
         DumpStream(codestream);
@@ -51,7 +53,7 @@ namespace LZW
 
         int offset = 0;
         int i = 0;
-        int codesize = imgHeader.LzwMinimum + 1;
+        int codesize = imgHeader.lzwMinimum + 1;
 
         int newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
         int oldCode;

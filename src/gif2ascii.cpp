@@ -3,8 +3,6 @@
 #include "utils/logger.hpp"
 #include "utils/error.hpp"
 
-#include "pixel.hpp"
-
 #include <stdio.h>
 
 /*
