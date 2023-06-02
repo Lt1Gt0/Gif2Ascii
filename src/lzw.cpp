@@ -36,13 +36,13 @@ namespace LZW
         dump.close();
     }
 
-    std::string Decompress(const ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream)
+    std::string Decompress(const ImageData& imgData, const byte colorTableSize)
     {
         #ifdef DBG
-        DumpStream(codestream);
+        DumpStream(imgData.block.data);
         #endif
 
-        if (codestream.size() <= 0)
+        if (imgData.block.data.size() <= 0)
             return "";
 
         logger.Log(DEBUG, "Decompressing stream...");
@@ -53,9 +53,9 @@ namespace LZW
 
         int offset = 0;
         int i = 0;
-        int codesize = imgHeader.lzwMinimum + 1;
+        int codesize = imgData.lzwMinimum + 1;
 
-        int newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+        int newCode = (imgData.block.data[i] >> offset) & ((int)pow(2, codesize) - 1);
         int oldCode;
 
         offset += codesize;
@@ -70,7 +70,7 @@ namespace LZW
             #endif
         }
 
-        newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+        newCode = (imgData.block.data[i] >> offset) & ((int)pow(2, codesize) - 1);
         offset += codesize;
 
         charstream += table[newCode];
@@ -80,14 +80,14 @@ namespace LZW
         oldCode = newCode;
 
         int count = table.size();
-        while (i < (int)codestream.size() - 1) {
+        while (i < (int)imgData.block.data.size() - 1) {
             if (offset + codesize > 8) {
-                uint16_t tmp = (codestream[i + 1] << 8) | codestream[i];
+                uint16_t tmp = (imgData.block.data[i + 1] << 8) | imgData.block.data[i];
                 newCode = (tmp >> offset) & ((int)pow(2, codesize) - 1);
                 offset -= 8;
                 i++;
             } else {
-                newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+                newCode = (imgData.block.data[i] >> offset) & ((int)pow(2, codesize) - 1);
             }
 
             offset += codesize;
@@ -103,7 +103,7 @@ namespace LZW
             }
 
             if (table[newCode][0] == char(colorTableSize + 1)) {
-                logger.Log(DEBUG, "\nReinitializing Code table...");
+                logger.Log(DEBUG, "Reinitializing Code table...");
 
                 #ifdef DBG
                 DumpTable(table);

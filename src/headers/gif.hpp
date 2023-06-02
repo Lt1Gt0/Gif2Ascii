@@ -50,7 +50,7 @@ namespace GIF
             ~Image();
              
             std::string LoadData(File* const gif);
-            void ReadDataSubBlocks(File* const gif);
+            void ReadDataSubBlock(File* const gif);
             void CheckExtensions(File* const gif);
     
             // Return the charstream given after decompression

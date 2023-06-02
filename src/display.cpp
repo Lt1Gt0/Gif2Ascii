@@ -63,47 +63,49 @@ namespace GIF
 
         system("clear");
         while (true) {
-            // int frameIdx = 0;
-            // 
-            // // Because image data is generic, typecast it to an Image*
-            // Image* imgData = reinterpret_cast<Image*>(gif->mImageData[frameIdx]);
-            //
-            // // if (useLCT) (TODO)
-            // 
-            // FILE* output = stdout;
-            // for (std::vector<char> frame : gif->mFrameMap) {
-            //     int col = 0;
-            //     for (char c : frame) {
-            //         // If for some reason a the character in the map is below zero, break
-            //         if (c < 0)
-            //             break;
-            //
-            //         if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
-            //             logger.Log(DEBUG, "%c - End of information", c);
-            //             break; 
-            //         }
-            //         
-            //         logger.Log(DEBUG, "C: %c", c);
-            //         Color color = colorTable[(int)c];
-            //         if (imgData->mTransparent && c == imgData->mTransparentColorIndex)
-            //             color = colorTable[imgData->mTransparentColorIndex - 1];
-            //
-            //         GIF::Pixel p = Pixel(ColorToChar(color), color);
-            //         p.PrintColor(output);
-            //
-            //         col++;
-            //
-            //         if (col >= gif->mDS.lsd.width) {
-            //             col = 0;
-            //             fprintf(output, "\n"); 
-            //         } 
-            //     } 
-            //
-            //     std::this_thread::sleep_for(std::chrono::milliseconds(imgData->mData->graphic.gce.delayTime * 100));
-            //     frameIdx++;
-            //     system("clear");
-            // } 
-            break;
+            int frameIdx = 0;
+
+            // Because image data is generic, typecast it to an Image*
+            Data::Data imgData = gif->mDS.data[frameIdx];
+
+            // if (useLCT) (TODO)
+
+            FILE* output = stdout;
+            for (std::vector<char> frame : gif->mFrameMap) {
+                int col = 0;
+                for (char c : frame) {
+                    // If for some reason a the character in the map is below zero, break
+                    if (c < 0)
+                        break;
+
+                    if (c == codeTable.at((int)codeTable.size() - 1)[0]) {
+                        logger.Log(DEBUG, "%c - End of information", c);
+                        break; 
+                    }
+                    
+                    // logger.Log(DEBUG, "C: %c", c);
+                    Color color = colorTable[(int)c];
+                    
+                    bool transparent = (imgData.graphic.gce.packed >> (int)Data::Graphic::GCEMask::TransparentColor) & 0x1;
+
+                    if (transparent && c == imgData.graphic.gce.transparentColorIndex)
+                        color = colorTable[imgData.graphic.gce.transparentColorIndex - 1];
+
+                    GIF::Pixel p = Pixel(ColorToChar(color), color);
+                    p.PrintColor(output);
+
+                    col++;
+
+                    if (col >= gif->mDS.lsd.width) {
+                        col = 0;
+                        fprintf(output, "\n"); 
+                    } 
+                } 
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(imgData.graphic.gce.delayTime * 100));
+                frameIdx++;
+                system("clear");
+            } 
         }
     }
 

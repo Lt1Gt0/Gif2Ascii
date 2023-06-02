@@ -16,89 +16,57 @@ namespace GIF
     std::string Image::LoadData(File* const gif)
     {
         // Load the Image Descriptor into memory
-        // mData->graphic = {};
-        // gif->mInStream.read(reinterpret_cast<char*>(&mData->graphic.imgDesc), sizeof(Data::Graphic::ImageDescriptor));
-
-        Data::Graphic::ImageDescriptor test = {};
-        // gif->mInStream.read(buf, sizeof(Data::Graphic::ImageDescriptor));
-
-        logger.Log(INFO, "%X2", gif->mInStream.tellg());
-        gif->mInStream.read((char*)&test, sizeof(Data::Graphic::ImageDescriptor));
-        logger.Log(INFO, "%X2", gif->mInStream.tellg());
-
-        logger.Log(DEBUG, "height -> %d", test.height); 
-        logger.Log(DEBUG, "width -> %d", test.width); 
-        logger.Log(DEBUG, "packed -> %d", test.packed); 
-        logger.Log(DEBUG, "top -> %d", test.top); 
-        logger.Log(DEBUG, "left -> %d", test.left); 
-        logger.Log(DEBUG, "seperator -> %d", test.seperator); 
+        gif->Read(&mData->graphic.imgDesc, sizeof(Data::Graphic::ImageDescriptor));
 
         // TODO - Add support for LCT in GIFS that require it
         if ((mData->graphic.imgDesc.packed >> (byte)Data::Graphic::ImgDescMask::LocalColorTable) & 0x1)
             logger.Log(INFO, "Loading Local Color Table"); 
         else
             logger.Log(INFO, "Local Color Table flag not set"); 
-
-        // logger.Log(DEBUG, "height -> %d", mData->graphic.imgDesc.height); 
-        // logger.Log(DEBUG, "width -> %d", mData->graphic.imgDesc.width); 
-        // logger.Log(DEBUG, "packed -> %d", mData->graphic.imgDesc.packed); 
-        // logger.Log(DEBUG, "top -> %d", mData->graphic.imgDesc.top); 
-        // logger.Log(DEBUG, "left -> %d", mData->graphic.imgDesc.left); 
-        // logger.Log(DEBUG, "seperator -> %d", mData->graphic.imgDesc.seperator); 
-        //
-        exit(1);
-
+      
         // Load the image header into memory
-        // logger.Log(DEBUG, "Current File Pos: %02X", gif->mInStream.tellg());
-        // gif->mInStream.read(reinterpret_cast<char*>(& mDataHeader), sizeof(byte) * sizeof(ImageDataHeader)); // Only read 2 bytes of file steam for LZW min and Follow Size 
-        // logger.Log(DEBUG, "Sizeof dataheader (b): %d", sizeof(ImageDataHeader) * sizeof(byte));
+        gif->Read(&mData->graphic.data.lzwMinimum, 1);
+        gif->Read(&mData->graphic.data.block.size, 1);
 
-        // logger.Log(DEBUG, "Current File Pos: %02X", gif->mInStream.tellg());
-        // logger.Log(DEBUG, "Image Header:");
-        // logger.Log(DEBUG, "  Follow Size: %02X", mDataHeader.FollowSize);
-        // logger.Log(DEBUG, "  LZW Minimum: %02X", mDataHeader.LzwMinimum);
-
-
-        // ReadDataSubBlocks(gif);
+        ReadDataSubBlock(gif);
 
         // Get the raster data from the image frame by decompressing the data block from the gif
-        // return LZW::Decompress(mDataHeader, mColorTableSize, mData);
-        return {};
+        return LZW::Decompress(mData->graphic.data, mColorTableSize);
     }
 
-    void Image::ReadDataSubBlocks(File* const gif)
+    void Image::ReadDataSubBlock(File* const gif)
     {
         // TODO 
         // while loop seems like it can be simplified for the first iteration
         // regarding the followSize
         
-        // logger.Log(INFO, "Loading Data sub blocks"); 
-        //
-        // byte nextByte = 0;
-        // int followSize = mDataHeader.FollowSize;
-        // 
-        // while (followSize--) {
-        //     nextByte = gif->mInStream.get();
-        //     mData.push_back(nextByte);
-        // }
-        //
-        // nextByte = gif->mInStream.get();
-        //
-        // while (true) {
-        //     // Check for the end of sub block
-        //     if (!nextByte)
-        //         break;
-        //     
-        //     followSize = nextByte;
-        //     while (followSize--) {
-        //         nextByte = gif->mInStream.get();
-        //         mData.push_back(nextByte);
-        //     }
-        // }
-        //
-        // // TODO
-        // // Print out the compressed stream of data 
-        // logger.Log(SUCCESS, "Loaded Data sub blocks"); 
+        logger.Log(INFO, "Loading Data sub blocks"); 
+        
+        byte nextByte = 0;
+        int followSize = mData->graphic.data.block.size;
+
+        while (followSize--) {
+            nextByte = gif->mInStream.get();
+            mData->graphic.data.block.data.push_back(nextByte);
+        }
+
+        nextByte = gif->mInStream.get();
+
+        while (true) {
+            // Check for the end of sub block
+            if (!nextByte)
+                break;
+            
+            followSize = nextByte;
+            while (followSize--) {
+                nextByte = gif->mInStream.get();
+                mData->graphic.data.block.data.push_back(nextByte);
+            }
+        }
+
+        // TODO
+        // Print out the compressed stream of data 
+        logger.Log(SUCCESS, "Loaded Data sub blocks"); 
     }
 
     void Image::CheckExtensions(File* const gif)
@@ -223,119 +191,120 @@ namespace GIF
 
     void Image::UpdatePixelMap(UNUSED File* const gif, UNUSED const std::string& rasterData, std::vector<char> pixMap, UNUSED std::vector<char> prevPixMap)
     {
-        // // Because each gif can have a different disposal method for different frames (according to GIF89a)
-        // // it is best to handle each disposal method instread of printing the decompressed codestream directly
-        // int disposalMethod = ((mExtensions.GraphicsControl.Packed >> (byte)GCEMask::Disposal) & 0x07);
-        // switch (disposalMethod) {
-        //     case 0:
-        //         break;
-        //     case 1:
-        //         DrawOverImage(gif, rasterData, pixMap);
-        //         break;
-        //     case 2:
-        //         RestoreCanvasToBG(gif, pixMap);
-        //         break;
-        //     case 3:
-        //         RestoreToPrevState(pixMap, prevPixMap);
-        //         break;
-        //     case 4:
-        //     case 5:
-        //     case 6:
-        //     case 7:
-        //         break;
-        //     default:
-        //         error(Severity::medium, "Image:", "undefined disposal method -", disposalMethod);
-        //         break;
-        // }
+        // Because each gif can have a different disposal method for different frames (according to GIF89a)
+        // it is best to handle each disposal method instread of printing the decompressed codestream directly
+        int disposalMethod = ((mData->graphic.gce.packed >> (byte)Data::Graphic::GCEMask::Disposal) & 0x07);
+        switch (disposalMethod) {
+            case 0:
+                break;
+            case 1:
+                DrawOverImage(gif, rasterData, pixMap);
+                break;
+            case 2:
+                RestoreCanvasToBG(gif, pixMap);
+                break;
+            case 3:
+                RestoreToPrevState(pixMap, prevPixMap);
+                break;
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                break;
+            default:
+                error(Severity::medium, "Image:", "undefined disposal method -", disposalMethod);
+                break;
+        }
     }
 
     void Image::DrawOverImage(File* const gif, const std::string& rasterData, std::vector<char> pixelMap)
     {
-        // logger.Log(INFO, "Drawing over image"); 
-        // int offset = 0;
-        // int currentChar = 0;
-        // for (int row = 0; row < mDescriptor.Height; row++) {
-        //     for (int col = 0; col < mDescriptor.Width; col++) {
-        //         if ((size_t)currentChar + 1 <= rasterData.size()) {
-        //             offset = ((row + mDescriptor.Top) * gif->mLSD.Width) + (col + mDescriptor.Left);
-        //             pixelMap.at(offset) = rasterData.at(currentChar);
-        //             currentChar++;
-        //         }
-        //     }
-        // }
+        logger.Log(INFO, "Drawing over image"); 
+        int offset = 0;
+        int currentChar = 0;
+        for (int row = 0; row < mData->graphic.imgDesc.height; row++) {
+            for (int col = 0; col < mData->graphic.imgDesc.width; col++) {
+                if ((size_t)currentChar + 1 <= rasterData.size()) {
+                    offset = ((row + mData->graphic.imgDesc.top) * gif->mDS.lsd.width) + (col + mData->graphic.imgDesc.left);
+                    pixelMap.at(offset) = rasterData.at(currentChar);
+                    currentChar++;
+                }
+            }
+        }
     }
 
     void Image::RestoreCanvasToBG(File* const gif, std::vector<char> pixelMap)
     {
-        // logger.Log(INFO, "Restore canvas to background"); 
-        // std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(mColorTableSize);
-        //
-        // int offset = 0;
-        // for (int row = 0; row < mDescriptor.Height; row++ ) {
-        //     for (int col = 0; col < mDescriptor.Left; col++) {
-        //         offset = ((row + mDescriptor.Top) * gif->mLSD.Width) + (col + mDescriptor.Left);
-        //         pixelMap.at(offset) = codeTable[gif->mLSD.BackgroundColorIndex][0]; 
-        //     }
-        // } 
+        logger.Log(INFO, "Restore canvas to background"); 
+        std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(mColorTableSize);
+
+        int offset = 0;
+        for (int row = 0; row < mData->graphic.imgDesc.height; row++ ) {
+            for (int col = 0; col < mData->graphic.imgDesc.left; col++) {
+                offset = ((row + mData->graphic.imgDesc.top) * gif->mDS.lsd.width) + (col + mData->graphic.imgDesc.left);
+                pixelMap.at(offset) = codeTable[gif->mDS.lsd.backgroundColorIndex][0]; 
+            }
+        } 
     }
 
     void Image::RestoreToPrevState(std::vector<char> pixMap, std::vector<char> prevPixMap)
     {
-        // logger.Log(INFO, "Restore canvas to previous state"); 
-        // pixMap = prevPixMap;
+        logger.Log(INFO, "Restore canvas to previous state"); 
+        pixMap = prevPixMap;
     }
 
     void Image::PrintDescriptor()
     {
-        // logger.Log(DEBUG, "------- Image Descriptor -------");
-        // logger.Log(DEBUG, "Seperator: %X", mDescriptor.Seperator);
-        // logger.Log(DEBUG, "Image Left: %d", mDescriptor.Left);
-        // logger.Log(DEBUG, "Image Top: %d", mDescriptor.Top);
-        // logger.Log(DEBUG, "Image Width: %d", mDescriptor.Width);
-        // logger.Log(DEBUG, "Image Height: %d", mDescriptor.Height);
-        // logger.Log(DEBUG, "Local Color Table Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::LocalColorTable) & 0x1);
-        // logger.Log(DEBUG, "Interlace Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::Interlace) & 0x1);
-        // logger.Log(DEBUG, "Sort Flag: %d", (mDescriptor.Packed >> (byte)ImgDescMask::IMGSort) & 0x1);
-        // logger.Log(DEBUG, "Size of Local Color Table: %d", (mDescriptor.Packed >> (byte)ImgDescMask::IMGSize) & 0x7);
-        // logger.Log(DEBUG, "--------------------------------");
+        using namespace Data::Graphic;
+        logger.Log(DEBUG, "------- Image Descriptor -------");
+        logger.Log(DEBUG, "Seperator: %X", mData->graphic.imgDesc.seperator);
+        logger.Log(DEBUG, "Image Left: %d", mData->graphic.imgDesc.left);
+        logger.Log(DEBUG, "Image Top: %d", mData->graphic.imgDesc.top);
+        logger.Log(DEBUG, "Image Width: %d", mData->graphic.imgDesc.width);
+        logger.Log(DEBUG, "Image Height: %d", mData->graphic.imgDesc.height);
+        logger.Log(DEBUG, "Local Color Table Flag: %d", (mData->graphic.imgDesc.packed >> (byte)ImgDescMask::LocalColorTable) & 0x1);
+        logger.Log(DEBUG, "Interlace Flag: %d", (mData->graphic.imgDesc.packed >> (byte)ImgDescMask::Interlace) & 0x1);
+        logger.Log(DEBUG, "Sort Flag: %d", (mData->graphic.imgDesc.packed >> (byte)ImgDescMask::IMGSort) & 0x1);
+        logger.Log(DEBUG, "Size of Local Color Table: %d", (mData->graphic.imgDesc.packed >> (byte)ImgDescMask::IMGSize) & 0x7);
+        logger.Log(DEBUG, "--------------------------------");
     }
 
     void Image::PrintData()
     {
-        // logger.Log(DEBUG, "\n------- Image Data -------");
-        // logger.Log(DEBUG, "LZW Minimum: 0x%X", mDataHeader.LzwMinimum);
-        // logger.Log(DEBUG, "Initial Follow Size: 0x%X", mDataHeader.FollowSize);
-        // logger.Log(DEBUG, "--------------------------");
+        logger.Log(DEBUG, "\n------- Image Data -------");
+        logger.Log(DEBUG, "LZW Minimum: 0x%X", mData->graphic.data.lzwMinimum);
+        logger.Log(DEBUG, "Initial Follow Size: 0x%X", mData->graphic.data.block.size);
+        logger.Log(DEBUG, "--------------------------");
     }
 
     void Image::PrintSubBlockData(std::vector<byte>* block)
     {
-        // logger.Log(DEBUG, "\n------- Block Data -------");
-        // logger.Log(DEBUG, "Size: %ld\n", block->size());
-        // for (int i = 0; i < (int)block->size(); i++) {
-        //     fprintf(stdout, "%X ", block->at(i));
-        // }
-        // logger.Log(DEBUG, "\n--------------------------");
+        logger.Log(DEBUG, "\n------- Block Data -------");
+        logger.Log(DEBUG, "Size: %ld\n", block->size());
+        for (int i = 0; i < (int)block->size(); i++) {
+            fprintf(stdout, "%X ", block->at(i));
+        }
+        logger.Log(DEBUG, "\n--------------------------");
     }
 
     void Image::DumpInfo(std::string dumpPath)
     {
-        // std::ofstream dump (dumpPath);
-        // 
-        // if (!dump.is_open())
-        //     error(Severity::medium, "GIF:", "Unable to open dump file");
+        std::ofstream dump (dumpPath);
+        
+        if (!dump.is_open())
+            error(Severity::medium, "GIF:", "Unable to open dump file");
         
         // Header information
         // dump << "File: " << mPath << std::endl;
         // dump << "Version: " << mHeader.Version[0] << mHeader.Version[1] << mHeader.Version[2] << std::endl;
-
-        // // Logical Screen Descriptor
+        
+        // Logical Screen Descriptor
         // dump << "LSD Width: " << (int)mLSD.Width << std::endl; 
         // dump << "LSD Height: " << (int)mLSD.Height << std::endl; 
         // dump << "GCTD Present: " << (int)((mLSD.Packed >> (byte)LSDMask::GlobalColorTable) & 0x1) << std::endl;
         // dump << "LSD Background Color Index: " << (int)mLSD.BackgroundColorIndex << std::endl; 
         // dump << "LSD Pixel Aspect Ratio: " << (int)mLSD.PixelAspectRatio << std::endl; 
-
+        // 
         // // GCTD / GCT
         // if ((mLSD.Packed >> (byte)LSDMask::GlobalColorTable) & 0x1) {
         //     dump << "GCT Size: " << (int)mGCTD.SizeInLSD << std::endl;
@@ -351,7 +320,7 @@ namespace GIF
         //     } 
         //     dump.unsetf(std::ios::hex);
         // }
-            
-        // dump.close();
+         
+        dump.close();
     }
 }
