@@ -81,14 +81,13 @@ namespace GIF
             gif->Read(&extensionCheck, sizeof(Data::ExtensionHeader));
 
             // If the dummy header contains an introducer for a extension, load the extension type
-            if (extensionCheck.introducer == EXTENSION_INTRODUCER) {
-                gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2);
+            
+            // Restore filepos to where it was before the extension check was loaded
+            gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2);
+            if (extensionCheck.introducer == EXTENSION_INTRODUCER)
                 LoadExtension(gif, extensionCheck);
-            } else {
-                // Restore filepos to where it was before the extension check was loaded
-                gif->mInStream.seekg((size_t)gif->mInStream.tellg() - 2);
+            else
                 return;
-            }
         }
     }
 

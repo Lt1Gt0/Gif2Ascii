@@ -12,16 +12,22 @@
 #include <chrono>
 #include <termios.h>
 #include <unistd.h>
+#include <ncurses.h>
 
 namespace GIF
 { 
-    termios gOrigTerm;
-    termios gCurrentTerm;
+    // termios gOrigTerm;
+    // termios gCurrentTerm;
 
     void InitializeTerminal()
     {
+        // Initialize ncurses
+        initscr();
+        cbreak();
+        noecho();
+
         // Get initial terminal attributes
-        tcgetattr(STDOUT_FILENO, &gOrigTerm);
+        // tcgetattr(STDOUT_FILENO, &gOrigTerm);
 
         // Set new termial attributes
         // gCurrentTerm = gOrigTerm;
@@ -30,14 +36,7 @@ namespace GIF
 
     void ResetTerminal()
     {
-        tcsetattr(STDOUT_FILENO, 0, &gOrigTerm);
-    }
-
-
-    void SigIntHandler(int sig)
-    {
-        system("clear");        
-        exit(0);
+        endwin();
     }
 
     void LoopFrames(const File* gif)
@@ -49,8 +48,9 @@ namespace GIF
          */
 
         logger.Log(DEBUG, "Looping Frames");
+        InitializeTerminal();
+        atexit(ResetTerminal);
 
-        signal(SIGINT, SigIntHandler);
         std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mDS.gctd.colorCount);
         
         Color* colorTable = nullptr;
@@ -61,7 +61,7 @@ namespace GIF
         else 
             useLCT = true;
 
-        system("clear");
+        refresh();
         while (true) {
             int frameIdx = 0;
 
@@ -104,7 +104,8 @@ namespace GIF
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(imgData.graphic.gce.delayTime * 100));
                 frameIdx++;
-                system("clear");
+                // system("clear");
+                refresh();
             } 
         }
     }
