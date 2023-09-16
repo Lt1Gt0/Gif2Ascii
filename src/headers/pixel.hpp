@@ -10,8 +10,8 @@ namespace GIF
 {
     struct Color {
         byte red;
-        byte blue;
         byte green;
+        byte blue;
 
         char* ToString() 
         {

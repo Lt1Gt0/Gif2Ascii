@@ -6,10 +6,11 @@
 
 namespace GIF
 {
+    constexpr const char* CHAR_MAP {"$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'."};
+
     void InitializeTerminal();
     void ResetTerminal();
 
-    constexpr const char* CHAR_MAP {"$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'."};
     void LoopFrames(const File* gif);
     char ColorToChar(const Color& color);
 }

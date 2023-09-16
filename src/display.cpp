@@ -83,9 +83,7 @@ namespace GIF
                         break; 
                     }
                     
-                    // logger.Log(DEBUG, "C: %c", c);
                     Color color = colorTable[(int)c];
-                    
                     bool transparent = (imgData.graphic.gce.packed >> (int)Data::Graphic::GCEMask::TransparentColor) & 0x1;
 
                     if (transparent && c == imgData.graphic.gce.transparentColorIndex)
@@ -104,7 +102,6 @@ namespace GIF
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(imgData.graphic.gce.delayTime * 100));
                 frameIdx++;
-                // system("clear");
                 refresh();
             } 
         }

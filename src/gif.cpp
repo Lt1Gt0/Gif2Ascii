@@ -29,15 +29,7 @@ namespace GIF
         else 
             logger.Log(SUCCESS, "Opened [%s]", mPath.c_str());
 
-        // Get beginning and end of file stream
-        const auto begin = mInStream.tellg();
-        mInStream.seekg(0, std::ios::end);
-        const auto end = mInStream.tellg();
-
-        // Set file size and reset position
-        mFileSize = end - begin;
-        mInStream.seekg(std::ios::beg);
-
+        CalculateFileSize();
         logger.Log(DEBUG, "Total file size: %dkB (%db)", mFileSize / 1024, mFileSize);
 
         Read();
@@ -47,6 +39,18 @@ namespace GIF
     }
 
     File::~File() {}
+
+    void File::CalculateFileSize()
+    {
+        // Get beginning and end of file stream
+        const auto begin = mInStream.tellg();
+        mInStream.seekg(0, std::ios::end);
+        const auto end = mInStream.tellg();
+
+        // Set file size and reset position
+        mFileSize = end - begin;
+        mInStream.seekg(std::ios::beg);
+    }
 
     void File::Read()
     {
@@ -103,16 +107,28 @@ namespace GIF
         // Load the GIF header into memory
         Read(&mDS.header, sizeof(DataStream::Header));
 
-        // Check if a valid version and signature is provided
-        if (!(std::strncmp(mDS.header.signature, GIF_SIGNATURE, 3)) && 
-            !(strncmp(mDS.header.version, GIF_87A, 3) || strncmp(mDS.header.version, GIF_89A, 3)))
-            error(Severity::high, "Header: ", "Invalid Header information");
-
-        // Check if the version is supported by my decoder
-        if (std::strncmp(mDS.header.version, SUPPORTED_VERSIONS[0], 3))
-            error(Severity::high, "Version Issue: ", "\tGif version is not supported by this decoder", mDS.header.version);
+        if (!ValidHeader())
+            error(Severity::high, "Invalid File Header");
 
         logger.Log(SUCCESS, "Parsed GIF Header");
+    }
+
+    bool File::ValidHeader()
+    {
+        // Check if a valid version and signature is provided
+        if (!(std::strncmp(mDS.header.signature, GIF_SIGNATURE, 3)) && 
+            !(strncmp(mDS.header.version, GIF_87A, 3) || strncmp(mDS.header.version, GIF_89A, 3))) {
+            logger.Log(ERROR, "Header: Invalid Header information");
+            return false;
+        }
+
+        // Check if the version is supported by my decoder
+        if (std::strncmp(mDS.header.version, SUPPORTED_VERSIONS[0], 3)) {
+            logger.Log(ERROR, "Version Issue: Gif version is not supported by this decoder", mDS.header.version);
+            return false;
+        }
+
+        return true;
     }
 
 
@@ -126,24 +142,28 @@ namespace GIF
         // Check to see if the GCT flag is set
         if (mDS.lsd.packed >> (int)LogicalScreen::Mask::GlobalColorTable) {
             logger.Log(INFO, "GCTD Presented - Loading GCTD");
-
-            // mGCTD = {};
-            mDS.gctd.sizeInLSD = (mDS.lsd.packed >> (byte)LogicalScreen::Mask::Size) & 0x07;
-            mDS.gctd.colorCount = pow(2, mDS.gctd.sizeInLSD + 1);
-            mDS.gctd.byteLength = 3 * mDS.gctd.colorCount;
-
-            // Generate the GCT from each color present in file
-            mGCT = new Color[mDS.gctd.colorCount];
-            for (int i = 0; i < mDS.gctd.colorCount; i++) {
-                Color color = {};
-                Read(&color, sizeof(Color));
-                mGCT[i] = color; 
-            }
-
-            logger.Log(SUCCESS, "Loaded GCTD");
+            ParseGCTD();
         } 
 
         logger.Log(SUCCESS, "Logical Screen Descriptor Initialized");
+    }
+
+    void File::ParseGCTD()
+    {
+        // mGCTD = {};
+        mDS.gctd.sizeInLSD = (mDS.lsd.packed >> (byte)LogicalScreen::Mask::Size) & 0x07;
+        mDS.gctd.colorCount = pow(2, mDS.gctd.sizeInLSD + 1);
+        mDS.gctd.byteLength = 3 * mDS.gctd.colorCount;
+
+        // Generate the GCT from each color present in file
+        mGCT = new Color[mDS.gctd.colorCount];
+        for (int i = 0; i < mDS.gctd.colorCount; i++) {
+            Color color = {};
+            Read(&color, sizeof(Color));
+            mGCT[i] = color; 
+        }
+
+        logger.Log(SUCCESS, "Loaded GCTD");
     }
 
     void File::GenerateFrameMap()

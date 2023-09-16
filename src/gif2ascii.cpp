@@ -24,7 +24,7 @@ int main(int argc, char** argv)
     GIF::File gif(argv[1]);
 
     #ifdef DBG
-    gif.DumpInfo("logs/dump");
+    gif.DumpInfo("logs/dump.log");
     #endif
 
     GIF::LoopFrames(&gif);

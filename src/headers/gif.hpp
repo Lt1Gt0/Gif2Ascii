@@ -40,7 +40,11 @@ namespace GIF
             void Read();
             void ParseHeader();
             void ParseLSD();
+            void ParseGCTD();
             void GenerateFrameMap();
+
+            void CalculateFileSize();
+            bool ValidHeader();
     };
 
     class Image 
