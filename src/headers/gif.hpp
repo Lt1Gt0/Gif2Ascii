@@ -5,7 +5,6 @@
 
 #include <vector>
 #include <stdio.h>
-#include <exception>
 #include <fstream>
 #include <string>
 #include "gifmeta.hpp"

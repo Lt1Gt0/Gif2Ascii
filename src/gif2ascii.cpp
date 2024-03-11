@@ -3,7 +3,7 @@
 #include "utils/logger.hpp"
 #include "utils/error.hpp"
 
-#include <stdio.h>
+#include <ncurses.h>
 
 /*
     The current version of this converter only works on gif89a not gif87a
@@ -16,6 +16,7 @@ int main(int argc, char** argv)
 {
     // Initialize logger
     logger = Logger("logs/", "info");
+    logger.EnableTracing();
         
     if (argc < 2)
         error(Severity::high, "Usage:", "./gif2Ascii <filepath>");
@@ -23,11 +24,29 @@ int main(int argc, char** argv)
     // Attempt to load GIF
     GIF::File gif(argv[1]);
 
-    #ifdef DBG
-    gif.DumpInfo("logs/dump.log");
-    #endif
+    Display::InitializeTerminal();
+    atexit(Display::ResetTerminal);
+    Size winSize = Display::GetDisplaySize();
 
-    GIF::LoopFrames(&gif);
+    logger.Log(TRACE, "(%d, %d)", winSize.width, winSize.height);
+    // for (byte i = 0; i < 20; i++) {
+        // byte bChannel= i * 10;
+        // GIF::Pixel pixel = GIF::Pixel('a', GIF::Color {.red=0, .green=0, .blue=bChannel}, Position{0,0});
+        // refresh();
+        // pixel.PrintColor();
+    // }
+    // while(true) {
+    //     GIF::Pixel pixel = GIF::Pixel('a', GIF::Color {.red=0, .green=0, .blue=255});
+    //     pixel.PrintColor();
+    //     refresh();
+    //     pixel.PrintColor();
+    // }
+
+    // #ifdef DBG
+    // gif.DumpInfo("logs/dump.log");
+    // #endif
+
+    // GIF::LoopFrames(&gif);
 
     logger.Close();
     return 0;

@@ -14,8 +14,8 @@
 #include <unistd.h>
 #include <ncurses.h>
 
-namespace GIF
-{ 
+namespace Display 
+{
     // termios gOrigTerm;
     // termios gCurrentTerm;
 
@@ -39,6 +39,18 @@ namespace GIF
         endwin();
     }
 
+    Size GetDisplaySize()
+    {
+        int row;
+        int col;
+        getmaxyx(stdscr, row, col);
+
+        return Size {.width = col, .height = row};
+    }
+}
+
+namespace GIF
+{ 
     void LoopFrames(const File* gif)
     {
         /* TODO
@@ -47,10 +59,7 @@ namespace GIF
          * it into a seperate file before drawing
          */
 
-        logger.Log(DEBUG, "Looping Frames");
-        InitializeTerminal();
-        atexit(ResetTerminal);
-
+        logger.Log(TRACE, "Looping Frames");
         std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(gif->mDS.gctd.colorCount);
         
         Color* colorTable = nullptr;
@@ -89,7 +98,8 @@ namespace GIF
                     if (transparent && c == imgData.graphic.gce.transparentColorIndex)
                         color = colorTable[imgData.graphic.gce.transparentColorIndex - 1];
 
-                    GIF::Pixel p = Pixel(ColorToChar(color), color);
+                    // FIXME
+                    GIF::Pixel p = Pixel(ColorToChar(color), color, Position{0,0});
                     p.PrintColor(output);
 
                     col++;

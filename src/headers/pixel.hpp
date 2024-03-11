@@ -22,13 +22,16 @@ namespace GIF
     };
 
     struct Pixel {
-        Pixel(char sym, Color c);
+        Pixel(char sym, Color c, Position pos);
 
         char symbol;
         Color color;
+        Position position;
 
         void PrintColor(FILE* fd = stdout);
         void PrintChar(FILE* fd = stdout);
+
+        void SetPos(Position pos);
     };
 }
 

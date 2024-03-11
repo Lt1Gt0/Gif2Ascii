@@ -1,7 +1,7 @@
 #include "gif.hpp"
 #include "gifmeta.hpp"
 
-#include <cstdint>
+// #include <cstdint>
 #include <stdio.h>
 #include <unordered_map>
 #include "lzw.hpp"
