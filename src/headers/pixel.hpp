@@ -32,6 +32,7 @@ namespace GIF
         void PrintChar(FILE* fd = stdout);
 
         void SetPos(Position pos);
+        bool CheckPosInBounds(Size maxSize);
     };
 }
 

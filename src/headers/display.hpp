@@ -6,10 +6,26 @@
 
 namespace Display
 {
+    struct PixelMap {
+        public: 
+            PixelMap(size_t rows, size_t cols);
+            ~PixelMap();
+
+            int InsertPixel(GIF::Pixel* pix); 
+
+            GIF::Pixel at(size_t row, size_t col);
+        
+        public:
+            size_t mRows;
+            size_t mCols;
+            GIF::Pixel** mBase;
+    };
+
     void InitializeTerminal();
     void ResetTerminal();
-    
     Size GetDisplaySize();
+
+    void DumpPixelMap(PixelMap* pixMap);
 }
 
 namespace GIF

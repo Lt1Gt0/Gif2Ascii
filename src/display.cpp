@@ -6,6 +6,7 @@
 
 #include <signal.h>
 #include <unordered_map>
+#include <assert.h>
 #include <string.h>
 #include <tgmath.h>
 #include <thread>
@@ -16,22 +17,24 @@
 
 namespace Display 
 {
-    // termios gOrigTerm;
-    // termios gCurrentTerm;
+    Size* gDisplaySize;
 
     void InitializeTerminal()
     {
+        gDisplaySize = nullptr;
+
         // Initialize ncurses
         initscr();
         cbreak();
         noecho();
 
-        // Get initial terminal attributes
-        // tcgetattr(STDOUT_FILENO, &gOrigTerm);
-
-        // Set new termial attributes
-        // gCurrentTerm = gOrigTerm;
-        // gCurrentTerm.c_iflag 
+        // Get the display size information
+        int row;
+        int col;
+        gDisplaySize = new Size;
+        getmaxyx(stdscr, row, col);
+        gDisplaySize->width = col;
+        gDisplaySize->height = row; 
     }
 
     void ResetTerminal()
@@ -41,12 +44,47 @@ namespace Display
 
     Size GetDisplaySize()
     {
-        int row;
-        int col;
-        getmaxyx(stdscr, row, col);
-
-        return Size {.width = col, .height = row};
+        assert(gDisplaySize != nullptr);
+        return *gDisplaySize;
     }
+
+    void DumpPixelMap(PixelMap* pixMap)
+    {
+        for (size_t row = 0; row <= pixMap->mRows; row++) {
+            for (size_t col = 0; col <= pixMap->mCols; col++) {
+                GIF::Pixel pixel = pixMap->at(row, col);
+                if (pixel.CheckPosInBounds(*gDisplaySize)) {
+                    mvaddch(col, row, pixel.symbol);
+                }
+            }
+        }
+    }
+
+    GIF::Pixel PixelMap::at(size_t row, size_t col)
+    {
+        return mBase[col][row];
+    }
+
+    int PixelMap::InsertPixel(GIF::Pixel* pix)
+    {
+        mBase[pix->position.Y][pix->position.X] = *pix;
+        return 0;
+    }
+
+    PixelMap::PixelMap(size_t rows, size_t cols)
+    {
+        this->mRows = rows;
+        this->mCols = cols;
+
+        this->mBase = (GIF::Pixel**)malloc(mRows * sizeof(GIF::Pixel*));
+        if (this->mBase != nullptr) {
+            for (size_t row = 0; row <= mRows; row++) {
+                this->mBase[row] = (GIF::Pixel*)malloc(mCols * sizeof(GIF::Pixel*));
+            }
+        }
+    }
+
+    PixelMap::~PixelMap() { }
 }
 
 namespace GIF

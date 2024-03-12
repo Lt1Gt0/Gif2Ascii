@@ -4,7 +4,6 @@
 #include "utils/error.hpp"
 
 #include <ncurses.h>
-
 /*
     The current version of this converter only works on gif89a not gif87a
     (for the most part). I am not doing to correct reading standard for v87a
@@ -28,19 +27,19 @@ int main(int argc, char** argv)
     atexit(Display::ResetTerminal);
     Size winSize = Display::GetDisplaySize();
 
-    logger.Log(TRACE, "(%d, %d)", winSize.width, winSize.height);
-    // for (byte i = 0; i < 20; i++) {
-        // byte bChannel= i * 10;
-        // GIF::Pixel pixel = GIF::Pixel('a', GIF::Color {.red=0, .green=0, .blue=bChannel}, Position{0,0});
-        // refresh();
-        // pixel.PrintColor();
-    // }
-    // while(true) {
-    //     GIF::Pixel pixel = GIF::Pixel('a', GIF::Color {.red=0, .green=0, .blue=255});
-    //     pixel.PrintColor();
-    //     refresh();
-    //     pixel.PrintColor();
-    // }
+    // Test position mapping by positioning the pixel in the midel of the screen
+    Display::PixelMap pixMap = Display::PixelMap(winSize.width, winSize.height);
+
+    for (byte i = 0; i < 20; i++) {
+        byte hue = 15 * i;
+        GIF::Pixel pixel = GIF::Pixel('a', GIF::Color {.red=hue, .green=hue, .blue=hue}, Position{i,i});
+        pixMap.InsertPixel(&pixel);
+    }
+
+    while(true) {
+        Display::DumpPixelMap(&pixMap);
+        refresh();
+    }
 
     // #ifdef DBG
     // gif.DumpInfo("logs/dump.log");
