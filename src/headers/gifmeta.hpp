@@ -121,15 +121,15 @@ namespace GIF
                 // TODO
             };
 
-            struct PACKED ImageDataHeader {
-                byte lzwMinimum;
-                byte followSize;
-            }; 
-
-            struct SubBlock {
-                byte    followSize;
-                byte*   data;
+            struct PACKED SubBlock {
+                byte                size;
+                std::vector<byte>   data;
             };
+
+            struct PACKED ImageData {
+                byte lzwMinimum;
+                SubBlock block;
+            }; 
 
             struct PlainTextExtension {
                 ExtensionHeader header;
@@ -152,6 +152,7 @@ namespace GIF
                 PlainTextExtension pte;
 
                 GCE gce;
+                ImageData data;
             };
         }
 

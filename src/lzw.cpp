@@ -16,11 +16,18 @@ namespace LZW
 
         dump.setf(std::ios::hex, std::ios::basefield);    
         for (byte b : stream) {
-            dump << std::uppercase << (int)b << std::endl;
+            dump << std::uppercase << (int)b << " ";
         }
         dump.unsetf(std::ios::hex);
 
         dump << std::endl;
+        dump.close();
+    }
+
+    void DumpDecompressed(std::string_view decompressed, const char* filepath = "logs/lzw.log")
+    {
+        std::ofstream dump(filepath, std::ios::out | std::ios::app);
+        dump << decompressed << std::endl;
         dump.close();
     }
 
@@ -36,41 +43,42 @@ namespace LZW
         dump.close();
     }
 
-    std::string Decompress(const ImageDataHeader& imgHeader, const byte colorTableSize, std::vector<byte> codestream)
+    std::string Decompress(const ImageData& imgData, const byte colorTableSize)
     {
         #ifdef DBG
-        DumpStream(codestream);
+        DumpStream(imgData.block.data);
         #endif
 
-        if (codestream.size() <= 0)
+        if (imgData.block.data.size() <= 0)
             return "";
 
         logger.Log(DEBUG, "Decompressing stream...");
 
-        std::unordered_map<int, std::string> table;
+        std::vector<byte> data = imgData.block.data;
+        std::unordered_map<int, std::string> table = InitializeCodeTable(colorTableSize);
         std::string charstream = ""; 
-        table = InitializeCodeTable(colorTableSize);
 
         int offset = 0;
         int i = 0;
-        int codesize = imgHeader.lzwMinimum + 1;
+        int codesize = imgData.lzwMinimum + 1;
 
-        int newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+        int newCode = (data[i] >> offset) & ((int)pow(2, codesize) - 1);
         int oldCode;
 
         offset += codesize;
 
         // Check for clearcode
-        if (newCode == 4) {
+
+        if (newCode == (int)std::pow(imgData.lzwMinimum, 2)) {
             logger.Log(DEBUG, "Encountered Clear Code...");
             table = InitializeCodeTable(colorTableSize);
 
-            #ifdef DBG
-            DumpTable(table);
-            #endif
+            // #ifdef DBG
+            // DumpTable(table);
+            // #endif
         }
 
-        newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+        newCode = (data[i] >> offset) & ((int)pow(2, codesize) - 1);
         offset += codesize;
 
         charstream += table[newCode];
@@ -80,14 +88,14 @@ namespace LZW
         oldCode = newCode;
 
         int count = table.size();
-        while (i < (int)codestream.size() - 1) {
+        while (i < (int)data.size() - 1) {
             if (offset + codesize > 8) {
-                uint16_t tmp = (codestream[i + 1] << 8) | codestream[i];
+                uint16_t tmp = (data[i + 1] << 8) | data[i];
                 newCode = (tmp >> offset) & ((int)pow(2, codesize) - 1);
                 offset -= 8;
                 i++;
             } else {
-                newCode = (codestream[i] >> offset) & ((int)pow(2, codesize) - 1);
+                newCode = (data[i] >> offset) & ((int)pow(2, codesize) - 1);
             }
 
             offset += codesize;
@@ -103,11 +111,11 @@ namespace LZW
             }
 
             if (table[newCode][0] == char(colorTableSize + 1)) {
-                logger.Log(DEBUG, "\nReinitializing Code table...");
+                logger.Log(DEBUG, "Reinitializing Code table...");
 
-                #ifdef DBG
-                DumpTable(table);
-                #endif
+                // #ifdef DBG
+                // DumpTable(table);
+                // #endif
 
                 table = InitializeCodeTable(colorTableSize);
             }
@@ -128,7 +136,6 @@ namespace LZW
     std::unordered_map<int, std::string> InitializeCodeTable(const byte colorTableSize)
     {
         std::unordered_map<int, std::string> table;
-
         for (int i = 0; i < colorTableSize + SPECIAL_CODE_COUNT; i++) { 
             std::string ch = ""; 
             ch += char(i); 

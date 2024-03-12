@@ -5,7 +5,6 @@
 
 #include <vector>
 #include <stdio.h>
-#include <exception>
 #include <fstream>
 #include <string>
 #include "gifmeta.hpp"
@@ -40,7 +39,11 @@ namespace GIF
             void Read();
             void ParseHeader();
             void ParseLSD();
+            void ParseGCTD();
             void GenerateFrameMap();
+
+            void CalculateFileSize();
+            bool ValidHeader();
     };
 
     class Image 
@@ -50,7 +53,7 @@ namespace GIF
             ~Image();
              
             std::string LoadData(File* const gif);
-            void ReadDataSubBlocks(File* const gif);
+            void ReadDataSubBlock(File* const gif);
             void CheckExtensions(File* const gif);
     
             // Return the charstream given after decompression
