@@ -14,6 +14,7 @@ int main(int argc, char** argv)
 {
     // Initialize logger
     logger = new Logger("logs/", "info");
+    logger.EnableTracing();
         
     if (argc < 2)
         error(Severity::high, "Usage:", "./bin/gif2Ascii <filepath>");
@@ -23,8 +24,8 @@ int main(int argc, char** argv)
     gif.Read();
 
     // Setup drawing procdure and display frame data
-    GifDisplay display = GifDisplay(&gif);
-    display.LoopFrames();
+    // GifDisplay display = GifDisplay(&gif);
+    // display.LoopFrames();
 
     logger.Close();
     return 0;

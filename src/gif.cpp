@@ -52,7 +52,7 @@ void GIF::LoadHeader()
     // Load the GIF header into memory
     fread(&this->mHeader, sizeof(uint8_t), sizeof(GifHeader), this->mFile);
 
-    // Check for a valid GIF Header
+    logger.Log(TRACE, "Checking for valid GIF Header");
     if (!ValidHeader())
         error(Severity::high, "GIF:", "Invalid Format Header");
     else
@@ -66,12 +66,12 @@ void GIF::LoadLSD()
     if (!this->mHeaderInitialized)
         error(Severity::medium, "GIF:", "Attempted to initialize frame map before header");
 
-    logger.Log(DEBUG, "Attempting to load Logical Screen Descriptor");
+    logger.Log(TRACE, "Loading Logical Screen Descriptor");
 
     //Load the LSD From GIF File 
     fread(&this->mLsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), this->mFile);
 
-    // Check to see if the GCT flag is set
+    logger.Log(TRACE, "Checking for GCT flag");
     if (this->mLsd.Packed >> (int)LSDMask::GlobalColorTable) {
         logger.Log(DEBUG, "GCTD Present - Loading GCTD");
 
@@ -92,7 +92,7 @@ void GIF::LoadLSD()
         logger.Log(SUCCESS, "Loaded GCTD");
         PrintColorTable();
     } else {
-        logger.Log(INFO, "GCT Not present");
+        logger.Log(DEBUG, "GCT Not present");
     }
 
     PrintHeaderInfo();
@@ -108,7 +108,7 @@ void GIF::GenerateFrameMap()
     if (!this->mLSDInitialized)
         error(Severity::medium, "GIF:", "Attempted to initialize frame map before Logical Screen Descriptor");
 
-    logger.Log(DEBUG, "Generating Frame Map");
+    logger.Log(TRACE, "Generating Frame Map");
     uint8_t nextByte;
     
     // The pixel map will be initialized as a single vector
@@ -183,7 +183,7 @@ void GIF::SigIntHandler(int sig)
 
 void GIF::PrintHeaderInfo()
 {   
-    logger.Log(DEBUG, "\n------- GIF INFO -------");
+    logger.Log(DEBUG, "------- GIF INFO -------");
 
     logger.Log(DEBUG, "[Header]");
     logger.Log(DEBUG, "\tSignature: %s", this->mHeader.Signature);
@@ -209,11 +209,11 @@ void GIF::PrintHeaderInfo()
 
 void GIF::PrintColorTable()
 {
-    logger.Log(DEBUG, "\n------- Global Color Table -------");
+    logger.Log(DEBUG, "------- Global Color Table -------");
     for (int i = 0; i < this->mGctd.NumberOfColors; i++) {
         logger.Log(DEBUG, "Red: %X", this->mColorTable[i].Red);
         logger.Log(DEBUG, "Green: %X", this->mColorTable[i].Green);
-        logger.Log(DEBUG, "Blue: %X\n", this->mColorTable[i].Blue);
+        logger.Log(DEBUG, "Blue: %X", this->mColorTable[i].Blue);
     }
     logger.Log(DEBUG, "----------------------------------");
 }

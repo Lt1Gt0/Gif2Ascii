@@ -21,10 +21,13 @@ Image::Image(FILE* _fp, Color* _colortable, uint8_t _colorTableSize)
 
 std::string Image::LoadImageData()
 {
+    logger.Log(TRACE, "Loading image data");
+
     // Load the Image Descriptor into memory
     fread(&this->mDescriptor, sizeof(uint8_t), sizeof(ImageDescriptor), this->mFile);
 
-    // TODO - Add support for LCT in GIFS that require it
+    // TODO:
+    //Add support for LCT in GIFS that require it
     if ((this->mDescriptor.Packed >> (uint8_t)ImgDescMask::LocalColorTable) & 0x1)
         logger.Log(DEBUG, "Loading Local Color Table");
     else
@@ -41,6 +44,8 @@ std::string Image::LoadImageData()
 
 void Image::ReadDataSubBlocks()
 {
+    logger.Log(TRACE, "Reading data subblocks");
+
     uint8_t nextByte = 0;
     int followSize = this->mHeader.FollowSize;
     
@@ -75,7 +80,7 @@ void Image::ReadDataSubBlocks()
 
 void Image::CheckExtensions()
 {
-    logger.Log(DEBUG, "Checking for extensions");
+    logger.Log(TRACE, "Checking for extensions");
 
     // Load a dummy header into memory
     // Allocate space in memory for an extension header
@@ -97,6 +102,8 @@ void Image::CheckExtensions()
 
 void Image::LoadExtension(const ExtensionHeader& headerCheck)
 {
+    logger.Log(TRACE, "Load Extensions");
+
     // If the header has a valid label for an extension, start each one
     // by loading the struct into memory and set its header to the one that was passed in
     fseek(this->mFile, -2, SEEK_CUR);
@@ -196,6 +203,8 @@ void Image::LoadExtension(const ExtensionHeader& headerCheck)
 
 void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPixMap, std::string* rasterData, LogicalScreenDescriptor* lsd)
 {
+    logger.Log(TRACE, "Updating pixel map");
+
     // Because each gif can have a different disposal method for different frames (according to GIF89a)
     // it is best to handle each disposal method instread of printing the decompressed codestream directly
     int disposalMethod = ((this->mExtensions.GraphicsControl.Packed >> (uint8_t)GCEMask::Disposal) & 0x07);
@@ -224,7 +233,8 @@ void Image::UpdatePixelMap(std::vector<char>* pixMap, std::vector<char>* prevPix
 
 void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
 {
-    logger.Log(DEBUG, "Drawing over image");
+    logger.Log(TRACE, "Drawing over image");
+
     int offset = 0;
     int currentChar = 0;
     for (int row = 0; row < this->mDescriptor.Height; row++) {
@@ -240,7 +250,7 @@ void Image::DrawOverImage(std::string* rasterData, std::vector<char>* pixelMap, 
 
 void Image::RestoreCanvasToBG(std::vector<char>* pixelMap, LogicalScreenDescriptor* lsd)
 {
-    logger.Log(DEBUG, "Restore canvas to background");
+    logger.Log(TRACE, "Restore canvas to background");
     std::unordered_map<int, std::string> codeTable = LZW::InitializeCodeTable(this->mColorTableSize);
 
     int offset = 0;
@@ -275,7 +285,7 @@ void Image::PrintDescriptor()
 
 void Image::PrintData()
 {
-    logger.Log(DEBUG, "\n------- Image Data -------");
+    logger.Log(DEBUG, "------- Image Data -------");
     logger.Log(DEBUG, "LZW Minimum: 0x%X", this->mHeader.LZWMinimum);
     logger.Log(DEBUG, "Initial Follow Size: 0x%X", this->mHeader.FollowSize);
     logger.Log(DEBUG, "--------------------------");
@@ -283,10 +293,10 @@ void Image::PrintData()
 
 void Image::PrintSubBlockData(std::vector<uint8_t>* block)
 {
-    logger.Log(DEBUG, "\n------- Block Data -------");
+    logger.Log(DEBUG, "------- Block Data -------");
     logger.Log(DEBUG, "Size: %ld\n", block->size());
     for (int i = 0; i < (int)block->size(); i++) {
         fprintf(stdout, "%X ", block->at(i));
     }
-    logger.Log(DEBUG, "\n--------------------------");
+    logger.Log(DEBUG, "--------------------------");
 }
