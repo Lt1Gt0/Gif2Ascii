@@ -1,10 +1,8 @@
 #File Directory things (might be overkill idk yet)
 INCLUDE = -I$(SRC_DIR)/headers
-NCURSES = -lncurses
-SRC_DIR = src
-OBJ_DIR = obj
-LOG_DIR = logs
-REDIRECT_DIR = redirects
+SRC_DIR = ./src
+OBJ_DIR = ./obj
+LOG_DIR = ./logs
 
 #Compiler and linker things
 CC = g++
@@ -22,13 +20,12 @@ OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 all: $(OBJ) 
 	@mkdir -p $(LOG_DIR)
 	@mkdir -p $(@D)
-	@mkdir -p $(REDIRECT_DIR)
 	@echo ---- Generating $^ ---
 
 $(OBJ): $(OBJS)
 	@echo ---- Linking $^ ----
 	@mkdir -p $(@D)
-	$(CC) $(NCURSES) $^ -o $@
+	$(CC) $^ -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo ---- Compiling $^ ----
@@ -38,5 +35,4 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 clean:
 	rm $(OBJ)
 	rm -rf $(OBJ_DIR)/
-	rm -rf $(REDIRECT_DIR)/
 	rm -rf $(LOG_DIR)/

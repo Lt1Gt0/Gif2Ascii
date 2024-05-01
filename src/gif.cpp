@@ -1,249 +1,219 @@
 #include "gif.hpp"
-#include "utils/error.hpp"
-#include "utils/logger.hpp"
-#include "utils/definitions.hpp"
-#include "utils/types.hpp"
 #include "gifmeta.hpp"
-// #include "lzw.hpp"
+#include "imagemeta.hpp"
+#include "lzw.hpp"
+#include "utils/logger.hpp"
+#include "utils/error.hpp"
 
 #include <cstdint>
 #include <unistd.h>
 #include <stdio.h>
-#include <tgmath.h>
-#include <string.h>
+#include <math.h>
 #include <unordered_map>
-#include <cstring>
-#include <vector>
+#include <string.h>
 
-template<class T>
-using Vec = std::vector<T>;
-
-namespace GIF
+GIF::GIF(const char* _filepath)
 {
-    File::File(std::string filepath) : mPath(filepath)
-    {
-        mInStream = std::ifstream(mPath, std::ifstream::in | std::ifstream::binary);
+    this->mFile = fopen(_filepath, "rb");
 
-        if (!mInStream)
-            error(Severity::high, "GIF:", "Unable to open file: ", mPath.c_str());
-        else 
-            logger.Log(SUCCESS, "Opened [%s]", mPath.c_str());
+    if (this->mFile == NULL)
+        error(Severity::high, "Error opening file:", _filepath);
+    else
+        logger.Log(DEBUG, "Opened [%s]", _filepath); 
 
-        CalculateFileSize();
-        logger.Log(DEBUG, "Total file size: %dkB (%db)", mFileSize / 1024, mFileSize);
+    // Get the file size and restore the file pointer back to position 0
+    fseek(this->mFile, 0, SEEK_END);
+    this->mFilesize = ftell(this->mFile);
+    rewind(this->mFile);
+    logger.Log(INFO, "Total file size: %dkB", this->mFilesize / 1024);
+   
+    // Initialize class members
+    this->mHeader = {};
+    this->mLsd = {};
+    this->mImageData = std::vector<Image>();
+    this->mFrameMap = std::vector<std::vector<char>>();
+    this->mPixelMap = std::vector<char>();
+    this->mPrevPixelMap = std::vector<char>();
+    this->mFrameMapInitialized = false;
+    this->mLSDInitialized = false;
+}
 
-        Read();
+void GIF::Read()
+{
+    logger.Log(DEBUG, "Reading GIF Information");
+    LoadHeader();
+    LoadLSD();
+    GenerateFrameMap();
+    logger.Log(DEBUG, "Read GIF Information");
+}
 
-        mInStream.close();
-        logger.Log(SUCCESS, "Buffered GIF Data");
-    }
+void GIF::LoadHeader()
+{
+    // Load the GIF header into memory
+    fread(&this->mHeader, sizeof(uint8_t), sizeof(GifHeader), this->mFile);
 
-    File::~File() {}
+    // Check for a valid GIF Header
+    if (!ValidHeader())
+        error(Severity::high, "GIF:", "Invalid Format Header");
+    else
+        logger.Log(DEBUG, "Valid GIF Header");
 
-    void File::CalculateFileSize()
-    {
-        // Get beginning and end of file stream
-        const auto begin = mInStream.tellg();
-        mInStream.seekg(0, std::ios::end);
-        const auto end = mInStream.tellg();
+    this->mHeaderInitialized = true;
+}
 
-        // Set file size and reset position
-        mFileSize = end - begin;
-        mInStream.seekg(std::ios::beg);
-    }
+void GIF::LoadLSD()
+{
+    if (!this->mHeaderInitialized)
+        error(Severity::medium, "GIF:", "Attempted to initialize frame map before header");
 
-    void File::Read()
-    {
-        logger.Log(INFO, "Reading GIF Information");
+    logger.Log(DEBUG, "Attempting to load Logical Screen Descriptor");
 
-        ParseHeader();
-        ParseLSD();
-        GenerateFrameMap();
+    //Load the LSD From GIF File 
+    fread(&this->mLsd, sizeof(uint8_t), sizeof(LogicalScreenDescriptor), this->mFile);
 
-        logger.Log(SUCCESS, "Read GIF Information");
-    }
+    // Check to see if the GCT flag is set
+    if (this->mLsd.Packed >> (int)LSDMask::GlobalColorTable) {
+        logger.Log(DEBUG, "GCTD Present - Loading GCTD");
 
-
-    /*
-     * TODO:
-     * Add more return statuses for better error handling
-     *
-     * RETURNS
-     *
-     * 0 -> Success
-     * 1 -> Issue
-     */
-    int File::Read(void* buf, size_t size, bool changePos, size_t offset)
-    {
-        int status = 0;
-
-        try {
-            if (changePos)
-                mInStream.seekg(offset);
-            else
-                offset = mInStream.cur;
-        } catch (std::exception err) {
-            logger.Log(ERROR, err.what());
-            logger.Log(ERROR, "Attempted to update file pos to: %d", offset);
-            error(Severity::high, "File Pos Update:", "Error Setting position of file Read");
-        }
-
-        try {
-            mInStream.read(reinterpret_cast<char*>(buf), size);
-        } catch (std::exception err) {
-            logger.Log(ERROR, err.what());
-            logger.Log(ERROR, "Attempted to cast");
-            error(Severity::high, "Cast Error:", "Error casting buffer type to char");
-        }
-
-        return status;
-    }
-
-    void File::ParseHeader()
-    {
-        if (!mInStream)
-            error(Severity::high, "File Buffer:", "Buffer was never initialized or was closed");
-
-        // Load the GIF header into memory
-        Read(&mDS.header, sizeof(DataStream::Header));
-
-        if (!ValidHeader())
-            error(Severity::high, "Invalid File Header");
-
-        logger.Log(SUCCESS, "Parsed GIF Header");
-    }
-
-    bool File::ValidHeader()
-    {
-        // Check if a valid version and signature is provided
-        if (!(std::strncmp(mDS.header.signature, GIF_SIGNATURE, 3)) && 
-            !(strncmp(mDS.header.version, GIF_87A, 3) || strncmp(mDS.header.version, GIF_89A, 3))) {
-            logger.Log(ERROR, "Header: Invalid Header information");
-            return false;
-        }
-
-        // Check if the version is supported by my decoder
-        if (std::strncmp(mDS.header.version, SUPPORTED_VERSIONS[0], 3)) {
-            logger.Log(ERROR, "Version Issue: Gif version is not supported by this decoder", mDS.header.version);
-            return false;
-        }
-
-        return true;
-    }
-
-
-    void File::ParseLSD()
-    {
-        logger.Log(INFO, "Attempting to load Logical Screen Descriptor");
-
-        //Load the LSD From GIF File 
-        Read(&mDS.lsd, sizeof(LogicalScreen::LSD));
-
-        // Check to see if the GCT flag is set
-        if (mDS.lsd.packed >> (int)LogicalScreen::Mask::GlobalColorTable) {
-            logger.Log(INFO, "GCTD Presented - Loading GCTD");
-            ParseGCTD();
-        } 
-
-        logger.Log(SUCCESS, "Logical Screen Descriptor Initialized");
-    }
-
-    void File::ParseGCTD()
-    {
-        // mGCTD = {};
-        mDS.gctd.sizeInLSD = (mDS.lsd.packed >> (byte)LogicalScreen::Mask::Size) & 0x07;
-        mDS.gctd.colorCount = pow(2, mDS.gctd.sizeInLSD + 1);
-        mDS.gctd.byteLength = 3 * mDS.gctd.colorCount;
+        // Load the Global Color Table Descriptor Data
+        this->mGctd = {};
+        this->mGctd.SizeInLSD = (this->mLsd.Packed >> (uint8_t)LSDMask::Size) & 0x07;
+        this->mGctd.NumberOfColors = pow(2, this->mGctd.SizeInLSD + 1);
+        this->mGctd.ByteLegth = 3 * this->mGctd.NumberOfColors;
 
         // Generate the GCT from each color present in file
-        mGCT = new Color[mDS.gctd.colorCount];
-        for (int i = 0; i < mDS.gctd.colorCount; i++) {
-            Color color = {};
-            Read(&color, sizeof(Color));
-            mGCT[i] = color; 
+        this->mColorTable = new Color[this->mGctd.NumberOfColors];
+        for (int i = 0; i < this->mGctd.NumberOfColors; i++) {
+            Color color = NULL_COLOR;
+            fread(&color, sizeof(uint8_t), COLOR_SIZE, this->mFile);
+            this->mColorTable[i] = color; 
         }
 
         logger.Log(SUCCESS, "Loaded GCTD");
+        PrintColorTable();
+    } else {
+        logger.Log(INFO, "GCT Not present");
     }
 
-    void File::GenerateFrameMap()
-    {
-        logger.Log(INFO, "Generating Frame Map");
+    PrintHeaderInfo();
+    this->mLSDInitialized = true;
+    logger.Log(SUCCESS, "Logical Screen Descriptor Initialized");
+}
+
+void GIF::GenerateFrameMap()
+{
+    if (!this->mHeaderInitialized)
+        error(Severity::medium, "GIF:", "Attempted to initialize frame map before header");
+    
+    if (!this->mLSDInitialized)
+        error(Severity::medium, "GIF:", "Attempted to initialize frame map before Logical Screen Descriptor");
+
+    logger.Log(DEBUG, "Generating Frame Map");
+    uint8_t nextByte;
+    
+    // The pixel map will be initialized as a single vector
+    // to mimic a two dimensional array, elements are accessed like so
+    // (char) pixel = PixelMap.at(ROW * width) + COL
+    this->mPixelMap.resize(this->mLsd.Width * this->mLsd.Height);
+
+    // Initialize pixel map with blank characters
+    for (int row = 0; row < this->mLsd.Height; row++) {
+        for (int col = 0; col < this->mLsd.Width; col++) {
+            this->mPixelMap.at((row * this->mLsd.Width) + col) = ' ';
+        }
+    }
+
+    // Build up each frame for the gif
+    while (true) {
+        Image img = Image(this->mFile, this->mColorTable, this->mGctd.NumberOfColors);
+
+        // Load Image Extenstion information before proceeding with parsing image data
+        img.CheckExtensions();
         
-        // The pixel map will be initialized as a single vector
-        // to mimic a two dimensional array, elements are accessed like so
-        // (char) pixel = PixelMap.at(ROW * width) + COL
-        Vec<char> pixelMap(mDS.lsd.width * mDS.lsd.height, 0);
-        Vec<char> prevPixelMap = pixelMap;
+        // Load the decompressed image data and draw the frame
+        logger.Log(DEBUG, "Loading Image Data");
+        std::string rasterData = img.LoadImageData();
 
-        // Build up each frame for the gif
-        while (true) {
-            Image img = Image();
-            img.mData = new Data::Data;
+        this->mPrevPixelMap = this->mPixelMap; 
+        img.UpdatePixelMap(&this->mPixelMap, &this->mPrevPixelMap, &rasterData, &this->mLsd);
+        this->mFrameMap.push_back(this->mPixelMap);
+        this->mImageData.push_back(img);
 
-            // Load Image Extenstion information before proceeding with parsing image data
-            img.CheckExtensions(this);
+        fread(&nextByte, sizeof(uint8_t), 1, this->mFile);
+        fseek(this->mFile, -1, SEEK_CUR);
+        
+        // Check if the file ended correctly (should end on 0x3B)
+        if ((size_t)ftell(this->mFile) == this->mFilesize - 1) {
+            if (nextByte == TRAILER)
+                logger.Log(SUCCESS, "File ended naturally");
+            else
+                logger.Log(WARNING, "File ended unaturally with byte [%c]", nextByte);
 
-            // Load the decompressed image data and draw the frame
-            logger.Log(INFO, "Loading Image Data");
-            std::string rasterData = img.LoadData(this);
-
-            prevPixelMap = pixelMap; 
-            img.UpdatePixelMap(this, rasterData, pixelMap, prevPixelMap);
-            mFrameMap.push_back(pixelMap);
-            mDS.data.push_back(*img.mData);
-            byte nextByte = mInStream.peek();
-
-            // Check if the file ended correctly (should end on 0x3B)
-            if ((size_t)mInStream.tellg() == mFileSize - 1) {
-                if (nextByte == TRAILER)
-                    logger.Log(SUCCESS, "File ended naturally");
-                else
-                    logger.Log(WARNING, "File ended unaturally with byte [%02X]", nextByte);
-
-                // There is nothing left to get from the file so close it
-                mInStream.close();
-            }
+            // There is nothing left to get from the file so close it
+            fclose(this->mFile);
             break;
         }
+    }
+    
+    this->mFrameMapInitialized = true;
+}
 
-        logger.Log(SUCCESS, "Generated Frame Map");
+bool GIF::ValidHeader()
+{
+    for (int i = 0; i < 3; i++) {
+        if (this->mHeader.Signature[i] != gifSignature[i])
+           return false; 
     }
 
-    void File::DumpInfo(std::string dumpPath)
-    {
-        std::ofstream dump(dumpPath);
-        
-        if (!dump.is_open())
-            error(Severity::medium, "GIF:", "Unable to open dump file");
-        
-        // Header information
-        dump << "File: " << mPath << std::endl;
-        dump << "Version: " << mDS.header.version[0] << mDS.header.version[1] << mDS.header.version[2] << std::endl;
-
-        // Logical Screen Descriptor
-        dump << "LSD Width: " << (int)mDS.lsd.width << std::endl; 
-        dump << "LSD Height: " << (int)mDS.lsd.height << std::endl; 
-        dump << "GCTD Present: " << (int)((mDS.lsd.packed >> (byte)LogicalScreen::Mask::GlobalColorTable) & 0x1) << std::endl;
-        dump << "LSD Background Color Index: " << (int)mDS.lsd.backgroundColorIndex << std::endl; 
-        dump << "LSD Pixel Aspect Ratio: " << (int)mDS.lsd.pixelAspectRatio << std::endl; 
-
-        // GCTD / GCT
-        if ((mDS.lsd.packed >> (byte)LogicalScreen::Mask::GlobalColorTable) & 0x1) {
-            dump << "GCT Size: " << (int)mDS.gctd.sizeInLSD << std::endl;
-            dump << "GCT Color Count: " << (int)mDS.gctd.colorCount << std::endl;
-            dump << "GCT Size in bytes: " << (int)mDS.gctd.byteLength << std::endl;
-            
-            dump.setf(std::ios::hex, std::ios::basefield);    
-            for (int i = 0; i < mDS.gctd.colorCount; i++) {
-                    dump << "\tRed: " << std::uppercase << (int)mGCT[i].red << std::endl;
-                    dump << "\tGreen: " << std::uppercase << (int)mGCT[i].green << std::endl;
-                    dump << "\tBlue: " << std::uppercase << (int)mGCT[i].blue << std::endl;
-                    dump << std::endl;
-            } 
-            dump.unsetf(std::ios::hex);
-        }
-            
-        dump.close();
+    for (int i = 0; i < 3; i++) {
+        if (this->mHeader.Version[i] != gif87a[i]
+         && this->mHeader.Version[i] != gif89a[i]) {
+            return false;
+        } 
     }
+
+    return true;
+}
+
+void GIF::SigIntHandler(int sig)
+{
+    system("clear");        
+    exit(0);
+}
+
+void GIF::PrintHeaderInfo()
+{   
+    logger.Log(DEBUG, "\n------- GIF INFO -------");
+
+    logger.Log(DEBUG, "[Header]");
+    logger.Log(DEBUG, "\tSignature: %s", this->mHeader.Signature);
+    logger.Log(DEBUG, "\tVersion: %s", this->mHeader.Version);
+
+    logger.Log(DEBUG, "[Logical Screen Descriptor]");
+    logger.Log(DEBUG, "\tWidth: %d", this->mLsd.Width);
+    logger.Log(DEBUG, "\tHeight: %d", this->mLsd.Height);
+    logger.Log(DEBUG, "\tGlobal Color Table Flag: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::GlobalColorTable) & 0x1);
+    logger.Log(DEBUG, "\tColor Resolution: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::ColorResolution) & 0x07);
+    logger.Log(DEBUG, "\tSort Flag: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::Sort) & 0x01);
+    logger.Log(DEBUG, "\tGlobal Color Table Size: %d", (this->mLsd.Packed >> (uint8_t)LSDMask::Size) & 0x07);
+    logger.Log(DEBUG, "\tBackground Color Index: %d", this->mLsd.BackgroundColorIndex);
+    logger.Log(DEBUG, "\tPixel Aspect Ratio: %d", this->mLsd.PixelAspectRatio);
+
+    if (this->mLsd.Packed >> (uint8_t)LSDMask::GlobalColorTable) {
+        logger.Log(DEBUG, "[Global Color Table]");
+        logger.Log(DEBUG, "\tSize: %d", this->mGctd.SizeInLSD);
+        logger.Log(DEBUG, "\tNumber of Colors: %d", this->mGctd.NumberOfColors);
+        logger.Log(DEBUG, "\tSize in bytes: %d", this->mGctd.ByteLegth);
+    }
+}
+
+void GIF::PrintColorTable()
+{
+    logger.Log(DEBUG, "\n------- Global Color Table -------");
+    for (int i = 0; i < this->mGctd.NumberOfColors; i++) {
+        logger.Log(DEBUG, "Red: %X", this->mColorTable[i].Red);
+        logger.Log(DEBUG, "Green: %X", this->mColorTable[i].Green);
+        logger.Log(DEBUG, "Blue: %X\n", this->mColorTable[i].Blue);
+    }
+    logger.Log(DEBUG, "----------------------------------");
 }
