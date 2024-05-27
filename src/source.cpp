@@ -1,3 +1,4 @@
+#include "catch_amalgamated.hpp"
 #include "gif.hpp"
 #include "display.hpp"
 #include "utils/error.hpp"

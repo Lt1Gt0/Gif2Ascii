@@ -24,3 +24,5 @@ gdb.txt
 .cache/
 .ccls-cache/
 .gdb_history
+
+catch_amalgamated.*
