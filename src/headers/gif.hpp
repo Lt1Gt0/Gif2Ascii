@@ -4,7 +4,6 @@
 
 #include <vector>
 #include <stdio.h>
-#include <exception>
 #include "gifmeta.hpp"
 #include "image.hpp"
 

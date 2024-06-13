@@ -69,10 +69,23 @@ void GifDisplay::LoopFrames()
     }
 }
 
-char GifDisplay::ColorToChar(const Color& color)
+char GifDisplay::ColorToChar(Color& color)
 {
     // Brightness in this context is the brighness calculated in grayscale (https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale)
     float brightness = (0.2126 * color.Red + 0.7152 * color.Green * 0.0722 * color.Blue);
     float chrIdx = brightness / (255.0 / strlen(this->mCharMap));
     return this->mCharMap[(int)floor(chrIdx)]; 
+}
+
+
+void Color::Print()
+{
+    // Background
+    fprintf(stdout, "\x1b[38;2;%d;%d;%dm", Red, Green, Blue);
+
+    // Foreground
+    fprintf(stdout, "\x1b[48;2;%d;%d;%dm", Red, Green, Blue);
+    fprintf(stdout, "%c", GifDisplay::ColorToChar(this));
+    fprintf(stdout, "\x1b[0m");
+
 }

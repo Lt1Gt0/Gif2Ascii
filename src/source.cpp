@@ -25,7 +25,12 @@ int main(int argc, char** argv)
     gif.Read();
 
     // Setup drawing procdure and display frame data
-    // GifDisplay display = GifDisplay(&gif);
+    GifDisplay display = GifDisplay(&gif);
+
+    // Background
+    fprintf(stdout, "\x1b[38;2;%d;%d;%dm", 255, 0, 0);
+
+
     // display.LoopFrames();
 
     logger.Close();

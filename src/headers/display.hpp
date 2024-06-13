@@ -11,9 +11,7 @@ class GifDisplay
         ~GifDisplay();
 
         void LoopFrames();
-
-    private:
-        char ColorToChar(const Color& color);
+        char ColorToChar(Color& color);
         
     private:
         const GIF* mGIF;

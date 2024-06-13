@@ -3,6 +3,7 @@
 #define _GIF_META_HPP
 
 #include <stdint.h>
+#include <stdio.h>
 #include <vector>
 
 constexpr char gifSignature[3]  {'G', 'I', 'F'};
@@ -48,6 +49,9 @@ struct Color {
     uint8_t Red;
     uint8_t Blue;
     uint8_t Green;
+
+    public:
+        void Print();
 };
 
 #endif // _GIF_META_HPP
