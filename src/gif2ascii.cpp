@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 
     for (byte i = 0; i < 20; i++) {
         byte hue = 15 * i;
-        GIF::Pixel pixel = GIF::Pixel('a', GIF::Color {.red=hue, .green=hue, .blue=hue}, Position{i,i});
+        GIF::Pixel pixel = GIF::Pixel('a', GIF::Color {.red=255, .green=0, .blue=0}, Position{i,i});
         pixMap.InsertPixel(&pixel);
     }
 

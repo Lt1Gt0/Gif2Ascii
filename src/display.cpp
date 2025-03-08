@@ -17,7 +17,17 @@
 
 namespace Display 
 {
+    // gDisplaySize represents the current size of the drawable display
+    // it will never be larger than gMaximumDisplaySize
+    //
+    // On initialization of gDisplaySize, it will be equal to gMaximumDisplaySize unless
+    // overriden by SetDisplaySize()
     Size* gDisplaySize;
+
+    // gMaximumDisplaySize represents the maximum width and height of the console window and should
+    // will not be modified after its initialization since that could mess with how the program
+    // defines the bounds of the drawable console window
+    Size* gMaximumDisplaySize;
 
     void InitializeTerminal()
     {
@@ -32,9 +42,15 @@ namespace Display
         int row;
         int col;
         gDisplaySize = new Size;
+        gMaximumDisplaySize = new Size;
         getmaxyx(stdscr, row, col);
-        gDisplaySize->width = col;
-        gDisplaySize->height = row; 
+
+        // Set the maximum display size
+        gMaximumDisplaySize->width = col;
+        gMaximumDisplaySize->height = row; 
+
+        gDisplaySize->width = gMaximumDisplaySize->width;
+        gDisplaySize->height = gMaximumDisplaySize->height; 
     }
 
     void ResetTerminal()
@@ -45,7 +61,13 @@ namespace Display
     Size GetDisplaySize()
     {
         assert(gDisplaySize != nullptr);
+        logger.Log(TRACE, "Window Size: %dX%d", gDisplaySize->width, gDisplaySize->height);
         return *gDisplaySize;
+    }
+
+    void SetDisplaySize(Size newSize)
+    {
+
     }
 
     void DumpPixelMap(PixelMap* pixMap)

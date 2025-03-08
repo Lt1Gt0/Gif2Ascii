@@ -15,15 +15,25 @@ namespace Display
 
             GIF::Pixel at(size_t row, size_t col);
         
-        public:
+            // These two members should eventually be treated as private
             size_t mRows;
             size_t mCols;
+
+        private:
             GIF::Pixel** mBase;
+            Size mMaxSize;
     };
 
     void InitializeTerminal();
     void ResetTerminal();
     Size GetDisplaySize();
+    
+    // For whatever reason if you would like to specify a new screen size for the gif
+    // to be drawn in, use this method
+    // 
+    // It will check to see that the new screen size will not be larger than what the current
+    // terminal size is so it won't draw out of bounds
+    void SetDisplaySize(Size newSize);
 
     void DumpPixelMap(PixelMap* pixMap);
 }
