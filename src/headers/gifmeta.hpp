@@ -51,6 +51,7 @@ struct Color {
     uint8_t Green;
 
     public:
+        char ToChar();
         void Print();
 };
 

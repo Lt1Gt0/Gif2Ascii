@@ -1,6 +1,6 @@
 #include "catch_amalgamated.hpp"
-#include "gif.hpp"
 #include "display.hpp"
+#include "gif.hpp"
 #include "utils/error.hpp"
 #include "utils/logger.hpp"
 
@@ -11,28 +11,26 @@
 */
 
 Logger logger;
-int main(int argc, char** argv)
-{
-    // Initialize logger
-    logger = new Logger("logs/", "info");
-    logger.EnableTracing();
-        
-    if (argc < 2)
-        error(Severity::high, "Usage:", "./bin/gif2Ascii <filepath>");
+int main(int argc, char **argv) {
+  // Initialize logger
+  logger = new Logger("logs/", "info");
+  logger.EnableTracing();
 
-    // Attempt to load GIF
-    GIF gif = GIF(argv[1]);
-    gif.Read();
+  if (argc < 2)
+    error(Severity::high, "Usage:", "./bin/gif2Ascii <filepath>");
 
-    // Setup drawing procdure and display frame data
-    GifDisplay display = GifDisplay(&gif);
+  // Attempt to load GIF
+  GIF gif = GIF(argv[1]);
+  gif.Read();
 
-    // Background
-    fprintf(stdout, "\x1b[38;2;%d;%d;%dm", 255, 0, 0);
+  // Setup drawing procdure and display frame data
+  GifDisplay display = GifDisplay(&gif);
 
+  // Background
+  fprintf(stdout, "\x1b[38;2;%d;%d;%dm", 255, 0, 0);
 
-    // display.LoopFrames();
+  // display.LoopFrames();
 
-    logger.Close();
-    return 0;
+  logger.Close();
+  return 0;
 }

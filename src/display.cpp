@@ -9,6 +9,8 @@
 #include <thread>
 #include <chrono>
 
+constexpr const char* CHAR_MAP = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`\'.";
+
 GifDisplay::GifDisplay(const GIF* _gif)
 {
     this->mGIF = _gif;
@@ -52,7 +54,7 @@ void GifDisplay::LoopFrames()
                 
                 fprintf(stdout, "\x1b[38;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
                 fprintf(stdout, "\x1b[48;2;%d;%d;%dm", color.Red, color.Blue, color.Green);
-                fprintf(stdout, "%c", ColorToChar(color));
+                fprintf(stdout, "%c", color.ToChar());
                 fprintf(stdout, "\x1b[0m");
                 col++;
 
@@ -69,14 +71,13 @@ void GifDisplay::LoopFrames()
     }
 }
 
-char GifDisplay::ColorToChar(Color& color)
+char Color::ToChar()
 {
     // Brightness in this context is the brighness calculated in grayscale (https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale)
-    float brightness = (0.2126 * color.Red + 0.7152 * color.Green * 0.0722 * color.Blue);
-    float chrIdx = brightness / (255.0 / strlen(this->mCharMap));
-    return this->mCharMap[(int)floor(chrIdx)]; 
+    float brightness = (0.2126 * Red + 0.7152 * Green * 0.0722 * Blue);
+    float chrIdx = brightness / (255.0 / strlen(CHAR_MAP));
+    return CHAR_MAP[(int)floor(chrIdx)]; 
 }
-
 
 void Color::Print()
 {
@@ -85,7 +86,7 @@ void Color::Print()
 
     // Foreground
     fprintf(stdout, "\x1b[48;2;%d;%d;%dm", Red, Green, Blue);
-    fprintf(stdout, "%c", GifDisplay::ColorToChar(this));
+    fprintf(stdout, "%c", ToChar());
     fprintf(stdout, "\x1b[0m");
 
 }
